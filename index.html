@@ -265,7 +265,6 @@ textarea{resize:vertical;min-height:65px}
         <div class="login-logo-sub">Sistema de gestión de equipos</div>
       </div>
     </div>
-    <div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);padding:12px 14px;border-radius:10px;margin-bottom:18px;font-size:13px;line-height:1.6;color:var(--text2)">
     <h1 class="login-title">Acceso seguro</h1>
     <p class="login-sub">Ingresa con tu RUT o correo electrónico para acceder al inventario.</p>
 
@@ -538,11 +537,19 @@ textarea{resize:vertical;min-height:65px}
 // ════════════════════════════════════════
 // CONSTANTS
 // ════════════════════════════════════════
-const STORAGE_KEY   = 'inventario_ti_v3_data';
 const USERS_KEY     = 'inventario_ti_v3_users';
-const GITHUB_KEY    = 'inventario_ti_v3_github';
 const SESSION_KEY   = 'inventario_ti_v3_session';
-const PENDING_KEY   = 'inventario_ti_v3_pending'; // flag: hay cambios sin sync
+
+// Claves dinámicas por usuario — se generan en runtime
+function userStorageKey(uid)  { return `inventario_ti_v3_data__${uid}`; }
+function userGithubKey(uid)   { return `inventario_ti_v3_github__${uid}`; }
+function userPendingKey(uid)  { return `inventario_ti_v3_pending__${uid}`; }
+
+// Identificador canónico del usuario (RUT normalizado, o email si no tiene RUT)
+function getUserId(user) {
+  if (!user) return null;
+  return user.rut ? normalizeRut(user.rut) : (user.email || '').toLowerCase().trim();
+}
 
 // ════════════════════════════════════════
 // STATE
@@ -559,7 +566,6 @@ let isSyncing    = false;
 // ════════════════════════════════════════
 function init() {
   loadUsers();
-  loadGithubConfig();
   checkSession();
   monitorOnline();
 }
@@ -609,10 +615,15 @@ function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appHeader').style.display = 'block';
   document.getElementById('appLayout').style.display = 'grid';
+  loadGithubConfig(); // carga config del usuario actual
   loadState();
   renderSidebar();
   renderMain();
   checkOnline();
+  // Mostrar usuario en header
+  const uid = currentUser?.email || currentUser?.rut || '';
+  const headerTitle = document.querySelector('.header-title');
+  if (headerTitle) headerTitle.innerHTML = `INVENTARIO TI <span>// ${uid}</span>`;
 }
 
 // ════════════════════════════════════════
@@ -693,19 +704,22 @@ function doLogout() {
 }
 
 // ════════════════════════════════════════
-// DATA — LOCAL
+// DATA — LOCAL (por usuario)
 // ════════════════════════════════════════
 function loadState() {
+  const uid = getUserId(currentUser);
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = uid ? localStorage.getItem(userStorageKey(uid)) : null;
     if (saved) state = JSON.parse(saved);
     else state = { departments: [], activeDept: null };
   } catch(e) { state = { departments: [], activeDept: null }; }
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  localStorage.setItem(PENDING_KEY, '1'); // mark as pending sync
+  const uid = getUserId(currentUser);
+  if (!uid) return;
+  localStorage.setItem(userStorageKey(uid), JSON.stringify(state));
+  localStorage.setItem(userPendingKey(uid), '1'); // mark as pending sync
   autoSync();
 }
 
@@ -715,19 +729,23 @@ function genId() { return Date.now().toString(36) + Math.random().toString(36).s
 // GITHUB GIST SYNC
 // ════════════════════════════════════════
 function loadGithubConfig() {
+  const uid = getUserId(currentUser);
+  if (!uid) return;
   try {
-    const saved = localStorage.getItem(GITHUB_KEY);
-    if (saved) githubCfg = JSON.parse(saved);
-    // Pre-load token if not already configured
+    const saved = localStorage.getItem(userGithubKey(uid));
+    githubCfg = saved ? JSON.parse(saved) : { token: '', gistId: '' };
+    // Pre-cargar token por defecto si no hay ninguno configurado
     if (!githubCfg.token) {
       githubCfg.token = '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';
       saveGithubConfigToStorage();
     }
-  } catch(e) {}
+  } catch(e) { githubCfg = { token: '', gistId: '' }; }
 }
 
 function saveGithubConfigToStorage() {
-  localStorage.setItem(GITHUB_KEY, JSON.stringify(githubCfg));
+  const uid = getUserId(currentUser);
+  if (!uid) return;
+  localStorage.setItem(userGithubKey(uid), JSON.stringify(githubCfg));
 }
 
 async function saveGithubConfig() {
@@ -743,14 +761,16 @@ async function saveGithubConfig() {
 
   try {
     if (!githubCfg.gistId) {
-      // Create new Gist
+      // Create new Gist with per-user filename
+      const uid = getUserId(currentUser);
+      const filename = uid ? `inventario_ti_${uid.replace(/[^a-z0-9]/g,'_')}.json` : 'inventario_ti_data.json';
       const res = await fetch('https://api.github.com/gists', {
         method: 'POST',
         headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: 'Inventario TI Colegio — datos sincronizados',
+          description: `Inventario TI Colegio — datos de ${uid || 'usuario'}`,
           public: false,
-          files: { 'inventario_ti_data.json': { content: JSON.stringify(state, null, 2) } }
+          files: { [filename]: { content: JSON.stringify(state, null, 2) } }
         })
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -759,7 +779,7 @@ async function saveGithubConfig() {
       document.getElementById('cfgGistId').value = data.id;
       saveGithubConfigToStorage();
       showCfgStatus('ok', `✅ Gist creado: ${data.id.slice(0,8)}…`);
-      localStorage.removeItem(PENDING_KEY);
+      if (uid) localStorage.removeItem(userPendingKey(uid));
     } else {
       // Test existing Gist
       await pushToGist();
@@ -781,31 +801,36 @@ function showCfgStatus(type, msg) {
 
 async function pushToGist() {
   if (!githubCfg.token || !githubCfg.gistId) return;
+  const uid = getUserId(currentUser);
+  const filename = uid ? `inventario_ti_${uid.replace(/[^a-z0-9]/g,'_')}.json` : 'inventario_ti_data.json';
   const res = await fetch(`https://api.github.com/gists/${githubCfg.gistId}`, {
     method: 'PATCH',
     headers: { Authorization: `token ${githubCfg.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ files: { 'inventario_ti_data.json': { content: JSON.stringify(state, null, 2) } } })
+    body: JSON.stringify({ files: { [filename]: { content: JSON.stringify(state, null, 2) } } })
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
 async function pullFromGist() {
   if (!githubCfg.token || !githubCfg.gistId) return false;
+  const uid = getUserId(currentUser);
+  const filename = uid ? `inventario_ti_${uid.replace(/[^a-z0-9]/g,'_')}.json` : 'inventario_ti_data.json';
   const res = await fetch(`https://api.github.com/gists/${githubCfg.gistId}`, {
     headers: { Authorization: `token ${githubCfg.token}` }
   });
   if (!res.ok) return false;
   const data = await res.json();
-  const content = data.files?.['inventario_ti_data.json']?.content;
-  if (!content) return false;
-  const remote = JSON.parse(content);
+  // Buscar archivo por nombre exacto del usuario
+  const fileContent = data.files?.[filename]?.content || data.files?.['inventario_ti_data.json']?.content;
+  if (!fileContent) return false;
+  const remote = JSON.parse(fileContent);
   // Merge: remote wins for existing depts, local adds new ones
   const remoteDepts = remote.departments || [];
   const localDepts  = state.departments || [];
   const remoteIds = new Set(remoteDepts.map(d=>d.id));
   const localOnly = localDepts.filter(d=>!remoteIds.has(d.id));
   state.departments = [...remoteDepts, ...localOnly];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (uid) localStorage.setItem(userStorageKey(uid), JSON.stringify(state));
   return true;
 }
 
@@ -826,6 +851,7 @@ async function manualSync() {
 }
 
 async function doSync(verbose=false) {
+  const uid = getUserId(currentUser);
   if (isSyncing || !githubCfg.token || !githubCfg.gistId) {
     if (verbose) toast('Configura GitHub primero.', 'warn');
     return;
@@ -838,7 +864,7 @@ async function doSync(verbose=false) {
   updateSyncBadge('syncing');
   try {
     await pushToGist();
-    localStorage.removeItem(PENDING_KEY);
+    if (uid) localStorage.removeItem(userPendingKey(uid));
     updateSyncBadge('online');
     if (verbose) toast('Sincronizado con GitHub ✓', 'ok');
   } catch(err) {
@@ -865,12 +891,12 @@ async function clearGithubConfig() {
 // ════════════════════════════════════════
 function monitorOnline() {
   window.addEventListener('online', async () => {
+    const uid = getUserId(currentUser);
     updateSyncBadge('syncing');
     toast('Conexión restaurada. Sincronizando…', 'info');
-    if (localStorage.getItem(PENDING_KEY)) {
+    if (uid && localStorage.getItem(userPendingKey(uid))) {
       await doSync();
     } else {
-      // Pull remote changes
       const merged = await pullFromGist();
       if (merged) {
         renderSidebar(); renderMain();
@@ -886,12 +912,13 @@ function monitorOnline() {
 }
 
 async function checkOnline() {
+  const uid = getUserId(currentUser);
   if (navigator.onLine && githubCfg.token && githubCfg.gistId) {
     updateSyncBadge('syncing');
     try {
       const merged = await pullFromGist();
       if (merged) { renderSidebar(); renderMain(); }
-      if (localStorage.getItem(PENDING_KEY)) await doSync();
+      if (uid && localStorage.getItem(userPendingKey(uid))) await doSync();
       updateSyncBadge('online');
     } catch(e) { updateSyncBadge('offline'); }
   } else if (!navigator.onLine) {
