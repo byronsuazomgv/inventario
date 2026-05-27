@@ -268,25 +268,36 @@ textarea{resize:vertical;min-height:65px}
     <div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);padding:12px 14px;border-radius:10px;margin-bottom:18px;font-size:13px;line-height:1.6;color:var(--text2)">
       <strong style="color:var(--accent)">Primer ingreso:</strong><br>
       Usa RUT <code style="font-family:var(--mono)">12-3</code> y contraseña <code style="font-family:var(--mono)">admin</code> para ingresar por primera vez.<br>
-      Luego podrás cambiar estos datos desde la sección de configuración.
+      Luego podrás agregar correo electrónico y cambiar credenciales en ⚙ Configuración.
     </div>
     <h1 class="login-title">Acceso seguro</h1>
-    <p class="login-sub">Ingresa tu RUT y contraseña para acceder al inventario.</p>
-    <div class="login-field">
+    <p class="login-sub">Ingresa con tu RUT o correo electrónico para acceder al inventario.</p>
+
+    <!-- Toggle RUT / Email -->
+    <div style="display:flex;gap:0;background:var(--navy-card);border:1px solid var(--border2);border-radius:10px;padding:4px;margin-bottom:20px">
+      <button id="loginToggleRut" onclick="setLoginMode('rut')" style="flex:1;padding:8px;border:none;border-radius:7px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;transition:all 0.2s;background:var(--accent);color:var(--navy)">🪪 RUT</button>
+      <button id="loginToggleEmail" onclick="setLoginMode('email')" style="flex:1;padding:8px;border:none;border-radius:7px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text2)">✉️ Correo</button>
+    </div>
+
+    <div class="login-field" id="loginRutField">
       <label>RUT</label>
       <input type="text" id="loginRut" placeholder="12-3 o tu RUT" oninput="formatRut(this)" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field" id="loginEmailField" style="display:none">
+      <label>Correo electrónico</label>
+      <input type="email" id="loginEmail" placeholder="usuario@colegio.cl" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-field">
       <label>Contraseña</label>
       <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="login-btn" onclick="doLogin()">Ingresar →</button>
-    <div class="login-error" id="loginError">RUT o contraseña incorrectos.</div>
+    <div class="login-error" id="loginError">Credenciales incorrectas. Verifica tu RUT/correo y contraseña.</div>
     <hr class="login-divider">
     <div class="login-hint">
       <strong>Primera interacción:</strong> Debes ingresar con las credenciales iniciales y luego cambiar/configurar los usuarios desde la app en (⚙ Configuración).<br><br>
       <strong>Usuario inicial:</strong> RUT <code>12-3</code> — Contraseña <code>admin</code><br>
-      Después de ingresar podrás modificar el RUT, contraseña y agregar más usuarios.
+      Después de ingresar podrás modificar el RUT, correo, contraseña y agregar más usuarios.
     </div>
   </div>
 </div>
@@ -501,6 +512,10 @@ textarea{resize:vertical;min-height:65px}
             <label>RUT</label>
             <input type="text" id="newUserRut" placeholder="12-3 o tu RUT" oninput="formatRut(this)">
           </div>
+          <div class="form-group full">
+            <label>Correo electrónico (opcional)</label>
+            <input type="email" id="newUserEmail" placeholder="usuario@colegio.cl">
+          </div>
           <div class="form-group">
             <label>Contraseña</label>
             <input type="password" id="newUserPass" placeholder="Contraseña">
@@ -565,11 +580,33 @@ function checkSession() {
   }
 }
 
+let loginMode = 'rut'; // 'rut' or 'email'
+
+function setLoginMode(mode) {
+  loginMode = mode;
+  const rutBtn   = document.getElementById('loginToggleRut');
+  const emailBtn = document.getElementById('loginToggleEmail');
+  const rutField   = document.getElementById('loginRutField');
+  const emailField = document.getElementById('loginEmailField');
+  if (mode === 'rut') {
+    rutBtn.style.background = 'var(--accent)'; rutBtn.style.color = 'var(--navy)';
+    emailBtn.style.background = 'transparent'; emailBtn.style.color = 'var(--text2)';
+    rutField.style.display = 'block'; emailField.style.display = 'none';
+    setTimeout(()=>document.getElementById('loginRut').focus(), 50);
+  } else {
+    emailBtn.style.background = 'var(--accent)'; emailBtn.style.color = 'var(--navy)';
+    rutBtn.style.background = 'transparent'; rutBtn.style.color = 'var(--text2)';
+    rutField.style.display = 'none'; emailField.style.display = 'block';
+    setTimeout(()=>document.getElementById('loginEmail').focus(), 50);
+  }
+  document.getElementById('loginError').style.display = 'none';
+}
+
 function showLogin() {
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('appHeader').style.display = 'none';
   document.getElementById('appLayout').style.display = 'none';
-  setTimeout(()=>document.getElementById('loginRut').focus(), 100);
+  setLoginMode('rut');
 }
 
 function showApp() {
@@ -625,16 +662,22 @@ function normalizeRut(v){
 }
 
 function doLogin() {
-  const rut  = normalizeRut(document.getElementById('loginRut').value);
-  const pass = document.getElementById('loginPass').value;
-  const err  = document.getElementById('loginError');
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginError');
   const users = getUsers();
+  let user;
 
-  const user = users.find(u => normalizeRut(u.rut) === rut && atob(u.pass) === pass);
+  if (loginMode === 'rut') {
+    const rut = normalizeRut(document.getElementById('loginRut').value);
+    user = users.find(u => normalizeRut(u.rut) === rut && atob(u.pass) === pass);
+  } else {
+    const email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
+    user = users.find(u => (u.email || '').toLowerCase() === email && atob(u.pass) === pass);
+  }
 
   if (user) {
     err.style.display = 'none';
-    currentUser = { rut: user.rut, role: user.role };
+    currentUser = { rut: user.rut, email: user.email || '', role: user.role };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
     showApp();
   } else {
@@ -648,6 +691,7 @@ function doLogout() {
   sessionStorage.removeItem(SESSION_KEY);
   currentUser = null;
   document.getElementById('loginRut').value = '';
+  document.getElementById('loginEmail').value = '';
   document.getElementById('loginPass').value = '';
   showLogin();
 }
@@ -678,6 +722,11 @@ function loadGithubConfig() {
   try {
     const saved = localStorage.getItem(GITHUB_KEY);
     if (saved) githubCfg = JSON.parse(saved);
+    // Pre-load token if not already configured
+    if (!githubCfg.token) {
+      githubCfg.token = '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';
+      saveGithubConfigToStorage();
+    }
   } catch(e) {}
 }
 
@@ -890,11 +939,15 @@ function renderUserList() {
   const el = document.getElementById('userList');
   if (!users.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Sin usuarios.</div>'; return; }
   el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px">
-    <tr><th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3);border-radius:6px 0 0 0">RUT</th>
-        <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Rol</th>
-        <th style="background:rgba(0,0,0,0.2);border-radius:0 6px 0 0"></th></tr>
+    <tr>
+      <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3);border-radius:6px 0 0 0">RUT</th>
+      <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Correo</th>
+      <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Rol</th>
+      <th style="background:rgba(0,0,0,0.2);border-radius:0 6px 0 0"></th>
+    </tr>
     ${users.map(u=>`<tr>
       <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px">${u.rut}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2)">${u.email||'<span style="color:var(--text3);font-style:italic">—</span>'}</td>
       <td style="padding:7px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;padding:2px 8px;border-radius:20px;${u.role==='admin'?'background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)':'background:var(--surface);color:var(--text2);border:1px solid var(--border)'}">${u.role==='admin'?'Admin':'Solo lectura'}</span></td>
       <td style="padding:7px 8px;border-bottom:1px solid var(--border);text-align:right">
         ${u.rut!==currentUser?.rut?`<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.rut}')">Eliminar</button>`:'<span style="font-size:11px;color:var(--text3)">Tú</span>'}
@@ -904,16 +957,28 @@ function renderUserList() {
 }
 
 function addUser() {
-  const rut  = document.getElementById('newUserRut').value.trim();
-  const pass = document.getElementById('newUserPass').value;
-  const role = document.getElementById('newUserRole').value;
+  const rut   = document.getElementById('newUserRut').value.trim();
+  const email = (document.getElementById('newUserEmail').value || '').trim().toLowerCase();
+  const pass  = document.getElementById('newUserPass').value;
+  const role  = document.getElementById('newUserRole').value;
   if (!rut || !pass) { toast('Completa RUT y contraseña.', 'err'); return; }
+  // Validate email format if provided
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    toast('El formato del correo no es válido.', 'err'); return;
+  }
+  // Check email not already used by another user
   const users = getUsers();
+  if (email) {
+    const emailConflict = users.find(u => u.rut !== rut && (u.email||'').toLowerCase() === email);
+    if (emailConflict) { toast('Ese correo ya está asignado a otro usuario.', 'err'); return; }
+  }
   const idx = users.findIndex(u=>u.rut===rut);
-  if (idx >= 0) users[idx] = { rut, pass: btoa(pass), role };
-  else users.push({ rut, pass: btoa(pass), role });
+  const entry = { rut, email, pass: btoa(pass), role };
+  if (idx >= 0) users[idx] = entry;
+  else users.push(entry);
   saveUsers(users);
   document.getElementById('newUserRut').value = '';
+  document.getElementById('newUserEmail').value = '';
   document.getElementById('newUserPass').value = '';
   renderUserList();
   toast(`Usuario ${rut} guardado.`, 'ok');
