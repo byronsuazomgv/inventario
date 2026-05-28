@@ -3,412 +3,405 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inventario TI — Colegio</title>
-<!-- Firebase SDK -->
+<title>Inventario TI</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser as fbDeleteUser, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ════════════════════════════════════════
-  // FIREBASE CONFIG — reemplaza con tu proyecto
-  // ════════════════════════════════════════
   const firebaseConfig = {
     apiKey: "AIzaSyAgIBH3MjhpvXvM89p2DJibHXooOUOSbGY",
     authDomain: "inventario-c90a4.firebaseapp.com",
     projectId: "inventario-c90a4",
     storageBucket: "inventario-c90a4.firebasestorage.app",
     messagingSenderId: "164775541900",
-    appId: "1:164775541900:web:f85725bc9b3d7b80ea0fa9",
-    measurementId: "G-RZ75DJJWYP"
-    };
+    appId: "1:164775541900:web:f85725bc9b3d7b80ea0fa9"
+  };
 
-  if (!firebaseConfig.apiKey) {
-    window._firebaseNotConfigured = true;
-  } else {
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
-    // Expose to global scope for use in non-module scripts
-    window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-      createUserWithEmailAndPassword, fbDeleteUser, updatePassword,
-      doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp };
-  }
+  window._fb = { auth, db,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged,
+    doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp };
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy: #0a1628;
-  --navy-mid: #112240;
-  --navy-card: #162a4a;
-  --accent: #00d4ff;
-  --accent2: #0ea5e9;
-  --accent-dim: rgba(0,212,255,0.12);
-  --accent-border: rgba(0,212,255,0.3);
-  --green: #00e5a0;
-  --green-bg: rgba(0,229,160,0.1);
-  --yellow: #fbbf24;
-  --yellow-bg: rgba(251,191,36,0.1);
-  --red: #ff5c7c;
-  --red-bg: rgba(255,92,124,0.1);
-  --text: #e2eaf5;
-  --text2: #8ba0bc;
-  --text3: #4a6380;
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.1);
-  --surface: rgba(255,255,255,0.03);
-  --radius: 10px;
-  --radius-lg: 14px;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'IBM Plex Sans', sans-serif;
-  --glow: 0 0 20px rgba(0,212,255,0.15);
+  --bg:       #08101e;
+  --bg2:      #0d1a2e;
+  --card:     #111f35;
+  --card2:    #162640;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.12);
+  --accent:   #3b9eff;
+  --accent2:  #64b5ff;
+  --accentbg: rgba(59,158,255,0.1);
+  --accentbr: rgba(59,158,255,0.25);
+  --green:    #22d3a0;
+  --greenbg:  rgba(34,211,160,0.1);
+  --greenbr:  rgba(34,211,160,0.25);
+  --yellow:   #f59e0b;
+  --yellowbg: rgba(245,158,11,0.1);
+  --yellowbr: rgba(245,158,11,0.3);
+  --red:      #f43f5e;
+  --redbg:    rgba(244,63,94,0.1);
+  --redbr:    rgba(244,63,94,0.25);
+  --orange:   #fb923c;
+  --text:     #dde6f3;
+  --text2:    #7a90ac;
+  --text3:    #3f546a;
+  --radius:   10px;
+  --radius2:  14px;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Space Grotesk', sans-serif;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--sans);background:var(--navy);color:var(--text);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -20%,rgba(0,212,255,0.08) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 90% 90%,rgba(14,165,233,0.05) 0%,transparent 60%);pointer-events:none;z-index:0}
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:5px;height:5px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:
+  radial-gradient(ellipse 70% 50% at 50% -10%,rgba(59,158,255,0.07) 0%,transparent 70%),
+  radial-gradient(ellipse 30% 40% at 95% 80%,rgba(34,211,160,0.04) 0%,transparent 60%);z-index:0}
+
+::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
-/* ── LOGIN ── */
-#loginScreen{position:fixed;inset:0;background:var(--navy);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
-#loginScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(0,212,255,0.06) 0%,transparent 70%)}
-.login-box{width:100%;max-width:400px;position:relative}
-.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:40px}
-.login-logo-icon{width:44px;height:44px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.login-logo-icon svg{width:22px;height:22px;color:var(--accent)}
-.login-logo-text{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent);letter-spacing:0.5px}
-.login-logo-sub{font-size:12px;color:var(--text2);margin-top:2px;font-family:var(--sans)}
-.login-title{font-size:26px;font-weight:600;margin-bottom:6px;line-height:1.2}
-.login-sub{font-size:14px;color:var(--text2);margin-bottom:32px;line-height:1.6}
-.login-field{margin-bottom:16px}
-.login-field label{display:block;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
-.login-field input{width:100%;padding:12px 16px;background:var(--navy-card);border:1px solid var(--border2);border-radius:var(--radius);font-size:15px;font-family:var(--sans);color:var(--text);transition:all 0.2s}
-.login-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1)}
-.login-field input::placeholder{color:var(--text3)}
-.login-btn{width:100%;padding:14px;background:var(--accent);color:var(--navy);border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--sans);cursor:pointer;margin-top:8px;transition:all 0.2s;letter-spacing:0.3px}
-.login-btn:hover{background:#33ddff;box-shadow:0 0 24px rgba(0,212,255,0.35)}
-.login-btn:active{transform:scale(0.99)}
-.login-error{background:var(--red-bg);border:1px solid rgba(255,92,124,0.3);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--red);margin-top:12px;display:none}
-.login-divider{border:none;border-top:1px solid var(--border);margin:28px 0}
-.login-hint{font-size:12px;color:var(--text3);line-height:1.6}
-.login-hint strong{color:var(--text2)}
-.login-hint code{font-family:var(--mono);background:var(--surface);padding:1px 5px;border-radius:4px;font-size:11px;border:1px solid var(--border)}
+/* ─── AUTH SCREEN ─── */
+#authScreen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.auth-box{width:100%;max-width:420px;position:relative;z-index:1}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:36px}
+.auth-logo-icon{width:42px;height:42px;background:var(--accentbg);border:1px solid var(--accentbr);border-radius:12px;display:grid;place-items:center}
+.auth-logo-icon svg{width:20px;height:20px;color:var(--accent)}
+.auth-logo-text{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);letter-spacing:.5px}
+.auth-logo-sub{font-size:12px;color:var(--text2);margin-top:2px}
 
-/* ── HEADER ── */
-.header{background:rgba(10,22,40,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.header-inner{max-width:1160px;margin:0 auto;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.header-brand{display:flex;align-items:center;gap:12px}
-.header-icon{width:32px;height:32px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.header-icon svg{width:16px;height:16px;color:var(--accent)}
-.header-title{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent)}
-.header-title span{color:var(--text2);font-weight:400}
-.header-right{display:flex;align-items:center;gap:10px}
+/* Tab switcher */
+.auth-tabs{display:flex;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:4px;margin-bottom:28px;gap:4px}
+.auth-tab{flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all .2s;color:var(--text2);background:transparent}
+.auth-tab.active{background:var(--accent);color:#fff;font-weight:600}
 
-/* SYNC STATUS */
-.sync-badge{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:500;border:1px solid;cursor:default;transition:all 0.3s;white-space:nowrap}
-.sync-badge svg{width:13px;height:13px;flex-shrink:0}
-.sync-online{background:var(--green-bg);border-color:rgba(0,229,160,0.3);color:var(--green)}
-.sync-offline{background:var(--yellow-bg);border-color:rgba(251,191,36,0.3);color:var(--yellow)}
-.sync-syncing{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
-.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.sync-dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
-.sync-dot-yellow{background:var(--yellow)}
-.sync-dot-blue{background:var(--accent);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spin{animation:spin 1s linear infinite}
+.auth-field{margin-bottom:15px}
+.auth-field label{display:block;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px}
+.auth-field input{width:100%;padding:11px 14px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;font-family:var(--sans);color:var(--text);transition:all .2s}
+.auth-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,158,255,0.12)}
+.auth-field input::placeholder{color:var(--text3)}
 
-/* BTN */
-.btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:var(--sans);transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;line-height:1}
-.btn svg{width:14px;height:14px;flex-shrink:0}
-.btn-ghost{background:var(--surface);color:var(--text2);border:1px solid var(--border2)}
-.btn-ghost:hover{background:var(--border);color:var(--text)}
-.btn-accent{background:var(--accent);color:var(--navy);font-weight:600}
-.btn-accent:hover{background:#33ddff;box-shadow:0 0 16px rgba(0,212,255,0.3)}
-.btn-green{background:rgba(0,229,160,0.15);color:var(--green);border:1px solid rgba(0,229,160,0.25)}
-.btn-green:hover{background:rgba(0,229,160,0.25)}
-.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,92,124,0.25)}
-.btn-danger:hover{background:rgba(255,92,124,0.2)}
+.auth-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--sans);cursor:pointer;margin-top:6px;transition:all .2s;letter-spacing:.3px}
+.auth-btn:hover{background:var(--accent2);box-shadow:0 0 24px rgba(59,158,255,0.3)}
+.auth-error{background:var(--redbg);border:1px solid var(--redbr);border-radius:var(--radius);padding:9px 13px;font-size:12px;color:var(--red);margin-top:10px;display:none;font-family:var(--mono)}
+.auth-hint{font-size:12px;color:var(--text3);margin-top:14px;line-height:1.6;text-align:center}
+.auth-hint code{font-family:var(--mono);background:var(--card);padding:1px 5px;border-radius:4px;border:1px solid var(--border2);font-size:11px;color:var(--accent)}
+
+/* ─── HEADER ─── */
+.header{background:rgba(8,16,30,0.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-inner{max-width:1180px;margin:0 auto;padding:0 22px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header-brand{display:flex;align-items:center;gap:10px}
+.header-icon{width:30px;height:30px;background:var(--accentbg);border:1px solid var(--accentbr);border-radius:8px;display:grid;place-items:center}
+.header-icon svg{width:15px;height:15px;color:var(--accent)}
+.brand-name{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent)}
+.brand-user{font-size:12px;color:var(--text3);margin-left:4px}
+.header-right{display:flex;align-items:center;gap:8px}
+.sync-dot-wrap{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;font-family:var(--mono);font-size:11px;border:1px solid;transition:all .3s}
+.sync-ok{background:var(--greenbg);border-color:var(--greenbr);color:var(--green)}
+.sync-wait{background:var(--accentbg);border-color:var(--accentbr);color:var(--accent)}
+.sync-off{background:var(--yellowbg);border-color:var(--yellowbr);color:var(--yellow)}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sdot-g{background:var(--green);box-shadow:0 0 6px var(--green)}
+.sdot-b{background:var(--accent);animation:blink 1s infinite}
+.sdot-y{background:var(--yellow)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ─── LAYOUT ─── */
+.layout{max-width:1180px;margin:0 auto;padding:22px;display:grid;grid-template-columns:260px 1fr;gap:18px;position:relative;z-index:1}
+@media(max-width:840px){.layout{grid-template-columns:1fr}}
+
+/* ─── BUTTONS ─── */
+.btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:var(--sans);transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;line-height:1}
+.btn svg{width:13px;height:13px;flex-shrink:0}
+.btn-ghost{background:rgba(255,255,255,0.04);color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+.btn-accent{background:var(--accent);color:#fff;font-weight:600}
+.btn-accent:hover{background:var(--accent2);box-shadow:0 0 14px rgba(59,158,255,0.3)}
+.btn-danger{background:var(--redbg);color:var(--red);border:1px solid var(--redbr)}
+.btn-danger:hover{background:rgba(244,63,94,0.18)}
 .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
-.btn-outline:hover{background:var(--surface);color:var(--text)}
-.btn-sm{padding:5px 9px;font-size:11px}
+.btn-outline:hover{background:rgba(255,255,255,0.05);color:var(--text)}
+.btn-sm{padding:5px 9px;font-size:11px;gap:4px}
+.btn-sm svg{width:12px;height:12px}
 .btn-logout{background:transparent;color:var(--text3);border:1px solid var(--border);font-family:var(--mono);font-size:11px}
-.btn-logout:hover{color:var(--red);border-color:rgba(255,92,124,0.3)}
+.btn-logout:hover{color:var(--red);border-color:var(--redbr)}
 
-/* ── LAYOUT ── */
-.layout{max-width:1160px;margin:0 auto;padding:24px;display:grid;grid-template-columns:270px 1fr;gap:20px;position:relative;z-index:1}
-@media(max-width:860px){.layout{grid-template-columns:1fr}}
-
-/* ── SIDEBAR ── */
-.sidebar{display:flex;flex-direction:column;gap:14px}
-.card{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.2),transparent)}
-.card-title{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+/* ─── CARD ─── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(59,158,255,0.2),transparent)}
+.card-title{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;display:flex;align-items:center;gap:5px}
 .card-title::before{content:'//';color:var(--text3)}
 
-/* DEPT LIST */
-.dept-list{display:flex;flex-direction:column;gap:4px}
-.dept-item{padding:9px 11px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border:1px solid transparent;transition:all 0.15s;font-size:13px}
-.dept-item:hover{background:var(--surface);border-color:var(--border)}
-.dept-item.active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
-.dept-item-name{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.dept-item-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-.dept-item-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:all 0.15s}
-.dept-item.active .dept-item-dot{background:var(--accent);box-shadow:0 0 8px var(--accent)}
-.dept-badges{display:flex;gap:4px}
-.badge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px}
-.badge-blue{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
-.badge-gray{background:var(--surface);color:var(--text2);border:1px solid var(--border)}
+/* ─── SIDEBAR ─── */
+.sidebar{display:flex;flex-direction:column;gap:14px}
+.dept-add{display:flex;gap:6px;margin-bottom:10px}
+.dept-add input{flex:1;padding:8px 11px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text)}
+.dept-add input:focus{outline:none;border-color:var(--accent)}
+.dept-add input::placeholder{color:var(--text3)}
+.dept-list{display:flex;flex-direction:column;gap:3px}
+.dept-item{padding:9px 11px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border:1px solid transparent;transition:all .15s;font-size:13px}
+.dept-item:hover{background:rgba(255,255,255,0.04);border-color:var(--border)}
+.dept-item.active{background:var(--accentbg);border-color:var(--accentbr);color:var(--accent)}
+.dept-item-name{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
+.dept-item-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.dept-item.active .dept-item-dot{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.dept-item-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dbadge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:20px}
+.dbadge-b{background:var(--accentbg);color:var(--accent);border:1px solid var(--accentbr)}
+.dbadge-g{background:rgba(255,255,255,0.05);color:var(--text2);border:1px solid var(--border)}
 
-/* ADD DEPT */
-.add-dept-form{display:flex;gap:6px;margin-bottom:12px}
-.add-dept-form input{flex:1;padding:8px 11px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text)}
-.add-dept-form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
-.add-dept-form input::placeholder{color:var(--text3)}
+/* STATS */
+.stats-tbl{width:100%;font-size:12px;border-collapse:collapse}
+.stats-tbl tr:not(:last-child) td{border-bottom:1px solid var(--border)}
+.stats-tbl td{padding:7px 3px;color:var(--text2)}
+.stats-tbl td:last-child{text-align:right;font-family:var(--mono);font-weight:600;color:var(--text)}
+.s-red{color:var(--red)!important}.s-yellow{color:var(--yellow)!important}.s-green{color:var(--green)!important}
 
-/* GLOBAL STATS */
-.stats-table{width:100%;font-size:12px;border-collapse:collapse}
-.stats-table tr:not(:last-child) td{border-bottom:1px solid var(--border)}
-.stats-table td{padding:7px 4px;color:var(--text2)}
-.stats-table td:last-child{text-align:right;font-family:var(--mono);font-weight:600;color:var(--text)}
-.stat-red{color:var(--red)!important}
-.stat-yellow{color:var(--yellow)!important}
-.stat-green{color:var(--green)!important}
+/* EXPORT */
+.export-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.exp-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 5px;border-radius:9px;border:1px solid var(--border);cursor:pointer;background:transparent;font-family:var(--sans);transition:all .15s}
+.exp-btn:hover{border-color:var(--accentbr);background:var(--accentbg)}
+.exp-icon{width:30px;height:30px;border-radius:7px;display:grid;place-items:center}
+.exp-lbl{font-size:11px;font-weight:600;color:var(--text)}
+.exp-ext{font-family:var(--mono);font-size:9px;color:var(--text3)}
 
-/* EXPORT GRID */
-.export-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.export-card{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px;border-radius:10px;border:1px solid var(--border);cursor:pointer;background:transparent;font-family:var(--sans);transition:all 0.15s}
-.export-card:hover{border-color:var(--accent-border);background:var(--accent-dim)}
-.export-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.export-card-label{font-size:11px;font-weight:600;color:var(--text)}
-.export-card-ext{font-family:var(--mono);font-size:10px;color:var(--text3)}
-
-/* ── MAIN ── */
-.main{display:flex;flex-direction:column;gap:18px}
-
-/* EMPTY */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:70px 24px;background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);position:relative;overflow:hidden}
-.empty-icon{width:52px;height:52px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.empty-icon svg{width:24px;height:24px;color:var(--accent)}
-.empty-title{font-size:18px;font-weight:600;margin-bottom:6px}
-.empty-sub{font-size:13px;color:var(--text2);max-width:320px;line-height:1.7}
+/* ─── MAIN ─── */
+.main{display:flex;flex-direction:column;gap:16px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 24px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius2)}
+.empty-icon{width:48px;height:48px;background:var(--accentbg);border:1px solid var(--accentbr);border-radius:11px;display:grid;place-items:center;margin-bottom:14px}
+.empty-icon svg{width:22px;height:22px;color:var(--accent)}
+.empty-title{font-size:17px;font-weight:600;margin-bottom:5px}
+.empty-sub{font-size:13px;color:var(--text2);max-width:300px;line-height:1.7}
 
 /* DEPT HEADER */
-.dept-header-card{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px 0;position:relative;overflow:hidden}
-.dept-header-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.2),transparent)}
-.dept-header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
-.dept-header-left h1{font-size:20px;font-weight:600;line-height:1.2}
-.dept-header-left p{font-size:13px;color:var(--text2);margin-top:3px;font-family:var(--mono)}
-
-/* TABS */
-.tabs{display:flex;gap:0;border-bottom:none}
-.tab{padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;font-family:var(--sans);color:var(--text3);transition:all 0.15s;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;position:relative;top:1px}
-.tab svg{width:14px;height:14px}
+.dept-hdr{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:18px 20px 0;position:relative;overflow:hidden}
+.dept-hdr::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(59,158,255,0.2),transparent)}
+.dept-hdr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.dept-hdr-top h1{font-size:19px;font-weight:600}
+.dept-hdr-top p{font-size:12px;color:var(--text2);margin-top:3px;font-family:var(--mono)}
+.tabs{display:flex;gap:0}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;font-family:var(--sans);color:var(--text3);transition:all .15s;display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;position:relative;top:1px}
+.tab svg{width:13px;height:13px}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tab:hover:not(.active){color:var(--text)}
-.count-pill{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border);font-size:10px;font-weight:600;font-family:var(--mono);padding:1px 7px;border-radius:20px}
+.cpill{background:var(--accentbg);color:var(--accent);border:1px solid var(--accentbr);font-size:10px;font-weight:600;font-family:var(--mono);padding:1px 6px;border-radius:20px}
 
-/* TABLE CARD */
-.table-card{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-.section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
-.section-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:6px}
-.section-label::before{content:'//'}
-.table-wrap{overflow-x:auto}
+/* TABLE */
+.tbl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:13px 17px;border-bottom:1px solid var(--border)}
+.tbl-label{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:5px}
+.tbl-label::before{content:'//'}
+.tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{padding:10px 16px;text-align:left;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);white-space:nowrap;background:rgba(0,0,0,0.15)}
-td{padding:11px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{padding:9px 15px;text-align:left;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);white-space:nowrap;background:rgba(0,0,0,.15)}
+td{padding:10px 15px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(0,212,255,0.02)}
-.td-num{font-family:var(--mono);font-size:11px;color:var(--text3);width:36px}
-.no-data{padding:32px;text-align:center;color:var(--text3);font-size:13px;font-family:var(--mono)}
-.td-actions{display:flex;gap:5px}
-
-/* STATUS */
+tr:hover td{background:rgba(59,158,255,0.02)}
+.td-num{font-family:var(--mono);font-size:11px;color:var(--text3);width:32px}
+.no-data{padding:28px;text-align:center;color:var(--text3);font-size:12px;font-family:var(--mono)}
+.td-actions{display:flex;gap:4px}
 .status{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;font-family:var(--mono);white-space:nowrap}
-.status-good{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,0.2)}
-.status-review{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,0.2)}
-.status-bad{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,92,124,0.2)}
-.review-note{font-size:11px;color:var(--text3);margin-top:3px;font-style:italic}
-.pc-type{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:11px;font-family:var(--mono)}
-.pc-generic{background:var(--surface);color:var(--text2);border:1px solid var(--border)}
+.status-good{background:var(--greenbg);color:var(--green);border:1px solid var(--greenbr)}
+.status-review{background:var(--yellowbg);color:var(--yellow);border:1px solid var(--yellowbr)}
+.status-bad{background:var(--redbg);color:var(--red);border:1px solid var(--redbr)}
+.review-note{font-size:11px;color:var(--text3);margin-top:2px;font-style:italic}
+.pc-type{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-family:var(--mono)}
+.pc-gen{background:rgba(255,255,255,0.05);color:var(--text2);border:1px solid var(--border)}
 .pc-aio{background:rgba(139,92,246,0.1);color:#a78bfa;border:1px solid rgba(139,92,246,0.2)}
+.pc-lap{background:rgba(34,211,160,0.1);color:var(--green);border:1px solid var(--greenbr)}
 
-/* MODAL */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:var(--navy-mid);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(0,212,255,0.05);position:relative}
-.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.3),transparent)}
-.modal-title{font-size:17px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.modal-title svg{width:18px;height:18px;color:var(--accent)}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* ─── MODAL ─── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.5);position:relative}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(59,158,255,0.3),transparent)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:9px}
+.modal-title svg{width:17px;height:17px;color:var(--accent)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .form-grid .full{grid-column:1/-1}
 .form-group{display:flex;flex-direction:column;gap:5px}
-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px}
-input,select,textarea{padding:9px 12px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);color:var(--text);transition:border-color 0.15s;width:100%}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
+label{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px}
+input,select,textarea{padding:9px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--sans);color:var(--text);transition:border-color .15s;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(59,158,255,0.12)}
 input::placeholder,textarea::placeholder{color:var(--text3)}
-select option{background:var(--navy-mid)}
-textarea{resize:vertical;min-height:65px}
-.modal-footer{margin-top:20px;display:flex;gap:8px;justify-content:flex-end}
+select option{background:var(--bg2)}
+textarea{resize:vertical;min-height:60px}
+.modal-footer{margin-top:18px;display:flex;gap:8px;justify-content:flex-end}
 
-/* CONFIG PANEL */
-.config-field{margin-bottom:14px}
-.config-field label{display:block;font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
-.config-field input{width:100%;padding:9px 12px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--mono);color:var(--text)}
-.config-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
-.config-hint{font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5}
-.config-hint a{color:var(--accent);text-decoration:none}
-.config-hint a:hover{text-decoration:underline}
-.config-status{padding:8px 12px;border-radius:8px;font-size:12px;font-family:var(--mono);margin-top:10px;display:none}
-.config-ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,0.2)}
-.config-err{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,92,124,0.2)}
+/* ─── INK SCREEN ─── */
+#inkScreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:90;overflow-y:auto}
+#inkScreen.visible{display:block}
+.ink-layout{max-width:1180px;margin:0 auto;padding:22px;position:relative;z-index:1}
+
+.ink-topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.ink-title-area{display:flex;align-items:center;gap:11px}
+.ink-icon{width:38px;height:38px;background:var(--yellowbg);border:1px solid var(--yellowbr);border-radius:10px;display:grid;place-items:center}
+.ink-icon svg{width:19px;height:19px;color:var(--yellow)}
+.ink-title{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--yellow)}
+.ink-sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* ALERT BANNER */
+.alert-banner{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:var(--radius2);padding:14px 18px;margin-bottom:18px;display:none}
+.alert-banner.visible{display:block}
+.alert-banner-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.alert-banner-header svg{width:17px;height:17px;color:var(--red);flex-shrink:0}
+.alert-banner-title{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:1px}
+.alert-items{display:flex;flex-wrap:wrap;gap:8px}
+.alert-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:var(--redbg);border:1px solid var(--redbr);border-radius:20px;font-size:12px}
+.alert-chip-qty{font-family:var(--mono);font-weight:700;color:var(--red);font-size:13px}
+.alert-chip-name{color:var(--text)}
+.alert-chip-zero{background:rgba(244,63,94,0.2);border-color:var(--redbr)}
+
+/* INK STATS */
+.ink-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:650px){.ink-stats{grid-template-columns:repeat(2,1fr)}}
+.ink-stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:13px 15px;position:relative;overflow:hidden}
+.ink-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.2),transparent)}
+.ink-stat-val{font-family:var(--mono);font-size:21px;font-weight:600;color:var(--text)}
+.ink-stat-lbl{font-size:11px;color:var(--text2);margin-top:3px}
+
+.ink-content{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden}
+.ink-toolbar{display:flex;align-items:center;gap:9px;padding:13px 17px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ink-search{flex:1;min-width:160px;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text)}
+.ink-search:focus{outline:none;border-color:var(--accent)}
+.ink-search::placeholder{color:var(--text3)}
+.ink-filter{padding:8px 11px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;font-size:12px;font-family:var(--sans);color:var(--text);cursor:pointer}
+.ink-filter:focus{outline:none;border-color:var(--accent)}
+
+/* INK TYPE BADGES */
+.ink-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-family:var(--mono);font-weight:500;white-space:nowrap}
+.ib-toner{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25)}
+.ib-liquid{background:var(--accentbg);color:var(--accent);border:1px solid var(--accentbr)}
+.ib-cartridge{background:var(--greenbg);color:var(--green);border:1px solid var(--greenbr)}
+.ib-drum{background:var(--yellowbg);color:var(--yellow);border:1px solid var(--yellowbr)}
+
+/* QTY CONTROLS */
+.qty-wrap{display:flex;align-items:center;gap:7px}
+.qty-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border2);background:rgba(255,255,255,0.04);color:var(--text);font-size:16px;cursor:pointer;display:grid;place-items:center;line-height:1;transition:all .15s;flex-shrink:0}
+.qty-btn:hover{background:rgba(255,255,255,0.1);border-color:var(--accentbr)}
+.qty-btn:active{transform:scale(.93)}
+.qty-num{font-family:var(--mono);font-size:14px;font-weight:700;min-width:24px;text-align:center}
+.qty-ok{color:var(--green)}
+.qty-low{color:var(--red)}
+.qty-mid{color:var(--yellow)}
+.qty-zero{color:var(--red);text-decoration:line-through}
 
 /* TOAST */
-.toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
-.toast{background:var(--navy-mid);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:12px;font-family:var(--mono);display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:toastIn 0.25s ease;min-width:240px}
-@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.toast-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.toast-container{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:7px}
+.toast{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:12px;font-family:var(--mono);display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:tIn .25s ease;min-width:220px;max-width:320px}
+@keyframes tIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.toast-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .toast-ok .toast-dot{background:var(--green)}
 .toast-err .toast-dot{background:var(--red)}
 .toast-info .toast-dot{background:var(--accent)}
 .toast-warn .toast-dot{background:var(--yellow)}
 
-/* ── INK INVENTORY ── */
-#inkScreen{display:none;position:fixed;inset:0;background:var(--navy);z-index:90;overflow-y:auto}
-#inkScreen.visible{display:block}
-.ink-layout{max-width:1160px;margin:0 auto;padding:24px;position:relative;z-index:1}
-.ink-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-.ink-topbar-left{display:flex;align-items:center;gap:12px}
-.ink-topbar-icon{width:38px;height:38px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.ink-topbar-icon svg{width:20px;height:20px;color:var(--yellow)}
-.ink-topbar-title{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--yellow)}
-.ink-topbar-sub{font-size:12px;color:var(--text2);margin-top:2px}
-.ink-stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-@media(max-width:700px){.ink-stats-bar{grid-template-columns:repeat(2,1fr)}}
-.ink-stat{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative;overflow:hidden}
-.ink-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,0.2),transparent)}
-.ink-stat-val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--text)}
-.ink-stat-lbl{font-size:11px;color:var(--text2);margin-top:4px}
-.ink-content{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-.ink-toolbar{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.ink-search{flex:1;min-width:180px;padding:8px 12px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text)}
-.ink-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
-.ink-search::placeholder{color:var(--text3)}
-.ink-filter{padding:8px 12px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text);cursor:pointer}
-.ink-filter:focus{outline:none;border-color:var(--accent)}
-.ink-type-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-family:var(--mono);font-weight:500;white-space:nowrap}
-.ink-toner{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25)}
-.ink-liquid{background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid var(--accent-border)}
-.ink-cartridge{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,0.25)}
-.ink-drum{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,0.25)}
-.ink-qty{font-family:var(--mono);font-size:13px;font-weight:600}
-.ink-qty-low{color:var(--red)}
-.ink-qty-mid{color:var(--yellow)}
-.ink-qty-ok{color:var(--green)}
-.qty-controls{display:flex;align-items:center;gap:6px}
-.qty-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all 0.15s}
-.qty-btn:hover{background:var(--border);border-color:var(--accent-border)}
+/* CONFIG TABS */
+.cfg-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px}
 </style>
 </head>
 <body>
 
-<!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ══════════ LOGIN SCREEN ══════════ -->
-<div id="loginScreen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="login-logo-icon">
+<!-- ══ AUTH SCREEN ══ -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18v12H3V4zm2 2v8h14V6H5zm-2 10h18v2H3v-2zM9 18h6v2H9v-2z"/></svg>
       </div>
       <div>
-        <div class="login-logo-text">INVENTARIO TI</div>
-        <div class="login-logo-sub">Sistema de gestión de equipos</div>
+        <div class="auth-logo-text">INVENTARIO TI</div>
+        <div class="auth-logo-sub">Sistema de gestión de equipos</div>
       </div>
     </div>
-    <h1 class="login-title">Acceso seguro</h1>
-    <p class="login-sub">Ingresa con tu RUT o correo electrónico para acceder al inventario.</p>
 
-    <!-- Toggle RUT / Email -->
-    <div style="display:flex;gap:0;background:var(--navy-card);border:1px solid var(--border2);border-radius:10px;padding:4px;margin-bottom:20px">
-      <button id="loginToggleRut" onclick="setLoginMode('rut')" style="flex:1;padding:8px;border:none;border-radius:7px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;transition:all 0.2s;background:var(--accent);color:var(--navy)">🪪 RUT</button>
-      <button id="loginToggleEmail" onclick="setLoginMode('email')" style="flex:1;padding:8px;border:none;border-radius:7px;font-size:13px;font-family:var(--sans);font-weight:500;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text2)">✉️ Correo</button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="setAuthMode('login')">Ingresar</button>
+      <button class="auth-tab" id="tabRegister" onclick="setAuthMode('register')">Registrarse</button>
     </div>
 
-    <div class="login-field" id="loginRutField">
-      <label>RUT</label>
-      <input type="text" id="loginRut" placeholder="12-3 o tu RUT" oninput="formatRut(this)" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="loginForm">
+      <div class="auth-field">
+        <label>Correo electrónico</label>
+        <input type="email" id="lEmail" placeholder="usuario@colegio.cl" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-field">
+        <label>Contraseña</label>
+        <input type="password" id="lPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="auth-btn" onclick="doLogin()" id="loginBtn">Ingresar →</button>
+      <div class="auth-error" id="loginError"></div>
+      <p class="auth-hint">Primera vez: regístrate con tu correo y crea una contraseña.</p>
     </div>
-    <div class="login-field" id="loginEmailField" style="display:none">
-      <label>Correo electrónico</label>
-      <input type="email" id="loginEmail" placeholder="usuario@colegio.cl" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <div class="login-field">
-      <label>Contraseña</label>
-      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
-    <div class="login-error" id="loginError">Credenciales incorrectas. Verifica tu RUT/correo y contraseña.</div>
-    <hr class="login-divider">
-    <div class="login-hint">
-      <strong>Primera interacción:</strong> Debes ingresar con las credenciales iniciales y luego cambiar/configurar los usuarios desde la app en (⚙ Configuración).<br><br>
-      <strong>Usuario inicial:</strong> RUT <code>12-3</code> — Contraseña <code>admin</code><br>
-      Después de ingresar podrás modificar el RUT, correo, contraseña y agregar más usuarios.
+
+    <div id="registerForm" style="display:none">
+      <div class="auth-field">
+        <label>Correo electrónico</label>
+        <input type="email" id="rEmail" placeholder="usuario@colegio.cl" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="auth-field">
+        <label>Nombre (para identificarte)</label>
+        <input type="text" id="rName" placeholder="Ej: Juan Pérez" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="auth-field">
+        <label>Contraseña (mínimo 6 caracteres)</label>
+        <input type="password" id="rPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="auth-field">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="rPass2" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="auth-btn" onclick="doRegister()" id="registerBtn">Crear cuenta →</button>
+      <div class="auth-error" id="registerError"></div>
+      <p class="auth-hint">Tu inventario estará vinculado a este correo y será privado.</p>
     </div>
   </div>
 </div>
 
-<!-- ══════════ HEADER ══════════ -->
+<!-- ══ HEADER ══ -->
 <header class="header" id="appHeader" style="display:none">
   <div class="header-inner">
     <div class="header-brand">
       <div class="header-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18v12H3V4zm2 2v8h14V6H5zm-2 10h18v2H3v-2zM9 18h6v2H9v-2z"/></svg>
       </div>
-      <div class="header-title">INVENTARIO TI <span>// Colegio</span></div>
+      <span class="brand-name">INVENTARIO TI</span>
+      <span class="brand-user" id="brandUser"></span>
     </div>
     <div class="header-right">
-      <div class="sync-badge sync-offline" id="syncBadge" title="Estado de sincronización">
-        <div class="sync-dot sync-dot-yellow" id="syncDot"></div>
-        <span id="syncLabel">Sin conexión</span>
+      <div class="sync-dot-wrap sync-wait" id="syncBadge">
+        <div class="sdot sdot-b" id="syncDot"></div>
+        <span id="syncLabel">Conectando…</span>
       </div>
-      <button class="btn btn-ghost" onclick="toggleInkScreen()" title="Inventario de Tintas" id="btnInkToggle">
+      <button class="btn btn-ghost btn-sm" onclick="toggleInkScreen()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><polyline points="14 2 14 8 20 8"/><path d="M2 15s.5-1 2-1 2 1 4 1 2-1 2-1"/></svg>
+        <span id="inkAlertDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;box-shadow:0 0 6px var(--red)"></span>
         Tintas
       </button>
-      <button class="btn btn-ghost" onclick="exportExcel()" title="Exportar Excel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        Excel
-      </button>
-      <button class="btn btn-ghost" onclick="exportPDF()" title="Exportar PDF">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        PDF
-      </button>
-      <button class="btn btn-ghost" onclick="openConfig()" title="Configurar sincronización">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-      <button class="btn btn-logout" onclick="doLogout()">⏻ Salir</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportExcel()">Excel</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportPDF()">PDF</button>
+      <button class="btn btn-logout btn-sm" onclick="doLogout()">⏻ Salir</button>
     </div>
   </div>
 </header>
 
-<!-- ══════════ APP LAYOUT ══════════ -->
+<!-- ══ MAIN LAYOUT ══ -->
 <div class="layout" id="appLayout" style="display:none">
-
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="card">
       <div class="card-title">Departamentos</div>
-      <div class="add-dept-form">
-        <input type="text" id="newDeptName" placeholder="Nuevo departamento…" onkeydown="if(event.key==='Enter')addDepartment()">
-        <button class="btn btn-accent" onclick="addDepartment()" title="Agregar">
+      <div class="dept-add">
+        <input type="text" id="newDeptName" placeholder="Nuevo departamento…" onkeydown="if(event.key==='Enter')addDept()">
+        <button class="btn btn-accent btn-sm" onclick="addDept()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
@@ -418,26 +411,17 @@ textarea{resize:vertical;min-height:65px}
     <div class="card">
       <div class="card-title">Exportar</div>
       <div class="export-grid">
-        <button class="export-card" onclick="exportExcel()">
-          <div class="export-card-icon" style="background:rgba(0,229,160,0.1)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          </div>
-          <div class="export-card-label">Excel</div>
-          <div class="export-card-ext">.xlsx</div>
+        <button class="exp-btn" onclick="exportExcel()">
+          <div class="exp-icon" style="background:var(--greenbg)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div class="exp-lbl">Excel</div><div class="exp-ext">.xlsx</div>
         </button>
-        <button class="export-card" onclick="exportPDF()">
-          <div class="export-card-icon" style="background:rgba(255,92,124,0.1)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5c7c" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="export-card-label">PDF</div>
-          <div class="export-card-ext">.pdf</div>
+        <button class="exp-btn" onclick="exportPDF()">
+          <div class="exp-icon" style="background:var(--redbg)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="exp-lbl">PDF</div><div class="exp-ext">.pdf</div>
         </button>
-        <button class="export-card" onclick="exportWord()">
-          <div class="export-card-icon" style="background:rgba(0,212,255,0.1)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="export-card-label">Word</div>
-          <div class="export-card-ext">.html</div>
+        <button class="exp-btn" onclick="exportWord()">
+          <div class="exp-icon" style="background:var(--accentbg)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="exp-lbl">Word</div><div class="exp-ext">.doc</div>
         </button>
       </div>
     </div>
@@ -448,38 +432,28 @@ textarea{resize:vertical;min-height:65px}
     </div>
   </aside>
 
-  <!-- MAIN CONTENT -->
   <main class="main" id="mainContent"></main>
 </div>
 
-<!-- ══════════ MODAL IMPRESORA ══════════ -->
+<!-- ══ MODAL IMPRESORA ══ -->
 <div id="modalPrinter" class="modal-backdrop" style="display:none">
   <div class="modal">
     <div class="modal-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      <span id="modalPrinterTitle">Agregar impresora</span>
+      <span id="modalPTitle">Agregar impresora</span>
     </div>
     <div class="form-grid">
-      <div class="form-group full">
-        <label>Nombre de la impresora</label>
-        <input type="text" id="pName" placeholder="Ej: Impresora sala de profesores">
-      </div>
-      <div class="form-group full">
-        <label>Modelo</label>
-        <input type="text" id="pModel" placeholder="Ej: HP LaserJet Pro M404n">
-      </div>
+      <div class="form-group full"><label>Nombre</label><input type="text" id="pName" placeholder="Ej: Impresora sala profesores"></div>
+      <div class="form-group full"><label>Modelo</label><input type="text" id="pModel" placeholder="Ej: HP LaserJet M404n"></div>
       <div class="form-group full">
         <label>Estado</label>
-        <select id="pStatus" onchange="toggleReviewField('printer')">
+        <select id="pStatus" onchange="togRevP()">
           <option value="good">✅ Buena</option>
           <option value="review">🔧 Necesita revisión</option>
           <option value="bad">❌ Mala</option>
         </select>
       </div>
-      <div class="form-group full" id="pReviewGroup" style="display:none">
-        <label>Descripción de revisión</label>
-        <textarea id="pReview" placeholder="Describe qué revisión necesita…"></textarea>
-      </div>
+      <div class="form-group full" id="pRevGrp" style="display:none"><label>Descripción</label><textarea id="pReview" placeholder="¿Qué revisión necesita?"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalPrinter')">Cancelar</button>
@@ -488,42 +462,33 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
-<!-- ══════════ MODAL PC ══════════ -->
+<!-- ══ MODAL PC ══ -->
 <div id="modalPC" class="modal-backdrop" style="display:none">
   <div class="modal">
     <div class="modal-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      <span id="modalPCTitle">Agregar PC</span>
+      <span id="modalPCTitle">Agregar equipo</span>
     </div>
     <div class="form-grid">
       <div class="form-group full">
-        <label>Tipo de equipo</label>
+        <label>Tipo</label>
         <select id="pcType">
           <option value="generic">PC Genérico</option>
           <option value="aio">All-in-One</option>
-          <option value="laptop">Notebook / Laptop</option>
+          <option value="laptop">Notebook</option>
         </select>
       </div>
-      <div class="form-group full">
-        <label>Nombre del funcionario</label>
-        <input type="text" id="pcUser" placeholder="Ej: Juan Pérez González">
-      </div>
-      <div class="form-group full">
-        <label>Modelo del equipo</label>
-        <input type="text" id="pcModel" placeholder="Ej: Dell OptiPlex 7090 / HP EliteBook 840">
-      </div>
+      <div class="form-group full"><label>Nombre funcionario</label><input type="text" id="pcUser" placeholder="Ej: Juan Pérez"></div>
+      <div class="form-group full"><label>Modelo equipo</label><input type="text" id="pcModel" placeholder="Ej: Dell OptiPlex 7090"></div>
       <div class="form-group full">
         <label>Estado</label>
-        <select id="pcStatus" onchange="toggleReviewField('pc')">
+        <select id="pcStatus" onchange="togRevPC()">
           <option value="good">✅ Bueno</option>
           <option value="review">🔧 Necesita revisión</option>
           <option value="bad">❌ Malo</option>
         </select>
       </div>
-      <div class="form-group full" id="pcReviewGroup" style="display:none">
-        <label>Descripción de revisión</label>
-        <textarea id="pcReview" placeholder="Describe qué revisión necesita…"></textarea>
-      </div>
+      <div class="form-group full" id="pcRevGrp" style="display:none"><label>Descripción</label><textarea id="pcReview" placeholder="¿Qué revisión necesita?"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalPC')">Cancelar</button>
@@ -532,128 +497,46 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
-<!-- ══════════ MODAL CONFIG ══════════ -->
-<div id="modalConfig" class="modal-backdrop" style="display:none">
-  <div class="modal" style="max-width:540px">
-    <div class="modal-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Configuración
-    </div>
-    
-    <!-- TABS CONFIG -->
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
-      <button class="tab active" id="cfgTab1" onclick="switchCfgTab(1)" style="font-size:12px;padding:8px 14px">🔥 Firebase</button>
-      <button class="tab" id="cfgTab2" onclick="switchCfgTab(2)" style="font-size:12px;padding:8px 14px">👤 Usuarios</button>
-    </div>
-
-    <!-- TAB 1: FIREBASE CONFIG -->
-    <div id="cfgPanel1">
-      <div id="fbNotConfigured" style="display:none;background:var(--yellow-bg);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--yellow);margin-bottom:8px">⚠ Firebase no configurado</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">
-          Para conectar esta app con Firebase, debes pegar tu configuración del proyecto a continuación. La app funcionará sin conexión mientras no esté configurada.
-        </div>
-      </div>
-      <div id="fbConfigured" style="display:none;background:var(--green-bg);border:1px solid rgba(0,229,160,0.3);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);margin-bottom:4px">✅ Firebase conectado</div>
-        <div style="font-size:12px;color:var(--text2)" id="fbProjectId">Proyecto: —</div>
-      </div>
-
-      <div class="config-field">
-        <label>Firebase Config (JSON)</label>
-        <textarea id="cfgFirebaseJson" rows="8" placeholder='Pega aquí el objeto firebaseConfig de tu proyecto:&#10;{&#10;  "apiKey": "AIza...",&#10;  "authDomain": "tu-proyecto.firebaseapp.com",&#10;  "projectId": "tu-proyecto",&#10;  "storageBucket": "tu-proyecto.appspot.com",&#10;  "messagingSenderId": "1234567890",&#10;  "appId": "1:123:web:abc"&#10;}' style="font-family:var(--mono);font-size:12px;min-height:160px"></textarea>
-        <div class="config-hint">
-          Obtén este objeto en <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Tu proyecto → ⚙ Configuración → Tus apps → SDK de Firebase.<br><br>
-          Debes habilitar <strong>Authentication (Email/Password)</strong> y <strong>Firestore</strong> en el proyecto.
-        </div>
-      </div>
-      <div id="cfgStatus" class="config-status"></div>
-      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-        <button class="btn btn-accent" onclick="saveFirebaseConfig()" style="flex:1">Guardar configuración</button>
-        <button class="btn btn-danger btn-sm" onclick="clearFirebaseConfig()">Limpiar</button>
-      </div>
-    </div>
-
-    <!-- TAB 2: USUARIOS -->
-    <div id="cfgPanel2" style="display:none">
-      <div id="userList" style="margin-bottom:14px"></div>
-      <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px">// Agregar / Editar usuario</div>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>RUT</label>
-            <input type="text" id="newUserRut" placeholder="12-3 o tu RUT" oninput="formatRut(this)">
-          </div>
-          <div class="form-group full">
-            <label>Correo electrónico (opcional)</label>
-            <input type="email" id="newUserEmail" placeholder="usuario@colegio.cl">
-          </div>
-          <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" id="newUserPass" placeholder="Contraseña">
-          </div>
-          <div class="form-group">
-            <label>Rol</label>
-            <select id="newUserRole">
-              <option value="admin">Administrador</option>
-              <option value="viewer">Solo lectura</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-accent" onclick="addUser()" style="margin-top:10px;width:100%">Guardar usuario</button>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modalConfig')">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ MODAL TINTA ══════════ -->
+<!-- ══ MODAL TINTA (SIMPLIFICADO) ══ -->
 <div id="modalInk" class="modal-backdrop" style="display:none">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:440px">
     <div class="modal-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><polyline points="14 2 14 8 20 8"/><path d="M2 15s.5-1 2-1 2 1 4 1 2-1 2-1"/></svg>
-      <span id="modalInkTitle">Agregar tinta / tóner</span>
+      <span id="inkModalTitle">Agregar tinta</span>
     </div>
     <div class="form-grid">
       <div class="form-group">
         <label>Marca</label>
-        <input type="text" id="inkBrand" placeholder="Ej: HP, Epson, Canon">
+        <input type="text" id="inkBrand" placeholder="HP, Epson, Canon…">
       </div>
       <div class="form-group">
-        <label>Modelo / Referencia</label>
-        <input type="text" id="inkModel" placeholder="Ej: 664, CF217A, TN-2370">
+        <label>Modelo / Código</label>
+        <input type="text" id="inkModel" placeholder="Ej: 664, CF217A">
       </div>
-      <div class="form-group full">
+      <div class="form-group">
         <label>Tipo</label>
         <select id="inkType">
-          <option value="toner">🟣 Tóner</option>
-          <option value="liquid">🔵 Tinta líquida</option>
-          <option value="cartridge">🟢 Cartucho</option>
-          <option value="drum">🟡 Tambor / Drum</option>
+          <option value="toner">Tóner</option>
+          <option value="liquid">Tinta líquida</option>
+          <option value="cartridge">Cartucho</option>
+          <option value="drum">Tambor / Drum</option>
         </select>
       </div>
-      <div class="form-group full">
-        <label>Color / Descripción</label>
-        <input type="text" id="inkColor" placeholder="Ej: Negro, Cian, Magenta, Amarillo, Color, Tricolor">
+      <div class="form-group">
+        <label>Color</label>
+        <input type="text" id="inkColor" placeholder="Negro, Cyan…">
       </div>
       <div class="form-group">
-        <label>Cantidad en stock</label>
-        <input type="number" id="inkQty" placeholder="0" min="0" value="1">
+        <label>Cantidad</label>
+        <input type="number" id="inkQty" value="1" min="0">
       </div>
       <div class="form-group">
-        <label>Stock mínimo (alerta)</label>
-        <input type="number" id="inkMinQty" placeholder="2" min="0" value="2">
+        <label>Mínimo (alerta)</label>
+        <input type="number" id="inkMinQty" value="2" min="0">
       </div>
       <div class="form-group full">
-        <label>Impresoras compatibles (opcional)</label>
-        <input type="text" id="inkCompat" placeholder="Ej: HP LaserJet M404, HP M428">
-      </div>
-      <div class="form-group full">
-        <label>Observaciones</label>
-        <textarea id="inkNotes" placeholder="Notas adicionales…" style="min-height:55px"></textarea>
+        <label>Impresoras compatibles <span style="color:var(--text3);font-size:9px">(opcional)</span></label>
+        <input type="text" id="inkCompat" placeholder="Ej: HP M404, HP M428">
       </div>
     </div>
     <div class="modal-footer">
@@ -663,53 +546,63 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
-<!-- ══════════ INK INVENTORY SCREEN ══════════ -->
+<!-- ══ INK SCREEN ══ -->
 <div id="inkScreen">
   <div class="ink-layout">
+    <!-- Topbar -->
     <div class="ink-topbar">
-      <div class="ink-topbar-left">
-        <div class="ink-topbar-icon">
+      <div class="ink-title-area">
+        <div class="ink-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><polyline points="14 2 14 8 20 8"/><path d="M2 15s.5-1 2-1 2 1 4 1 2-1 2-1"/></svg>
         </div>
         <div>
-          <div class="ink-topbar-title">INVENTARIO DE TINTAS</div>
-          <div class="ink-topbar-sub">Gestión de tóners, tintas, cartuchos y tambores</div>
+          <div class="ink-title">INVENTARIO DE TINTAS</div>
+          <div class="ink-sub">Tóners, tintas, cartuchos y tambores</div>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-ghost" onclick="exportInkExcel()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Excel
-        </button>
-        <button class="btn btn-accent" id="btnAddInk" onclick="openAddInk()">
+        <button class="btn btn-ghost btn-sm" onclick="exportInkExcel()">Excel</button>
+        <button class="btn btn-accent btn-sm" onclick="openAddInk()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Agregar tinta
         </button>
-        <button class="btn btn-ghost" onclick="toggleInkScreen()">
+        <button class="btn btn-ghost btn-sm" onclick="toggleInkScreen()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Cerrar
         </button>
       </div>
     </div>
 
-    <div class="ink-stats-bar" id="inkStatsBar"></div>
+    <!-- Alert banner -->
+    <div class="alert-banner" id="alertBanner">
+      <div class="alert-banner-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="alert-banner-title">⚠ Tintas con stock bajo — ¡Solicitar compra!</span>
+      </div>
+      <div class="alert-items" id="alertItems"></div>
+    </div>
 
+    <!-- Stats -->
+    <div class="ink-stats" id="inkStats"></div>
+
+    <!-- Table -->
     <div class="ink-content">
       <div class="ink-toolbar">
-        <input class="ink-search" type="text" id="inkSearchInput" placeholder="Buscar por marca, modelo, tipo…" oninput="renderInkTable()">
-        <select class="ink-filter" id="inkFilterType" onchange="renderInkTable()">
+        <input class="ink-search" type="text" id="inkSearch" placeholder="Buscar marca, modelo, tipo…" oninput="renderInkTable()">
+        <select class="ink-filter" id="inkFType" onchange="renderInkTable()">
           <option value="">Todos los tipos</option>
           <option value="toner">Tóner</option>
           <option value="liquid">Tinta líquida</option>
           <option value="cartridge">Cartucho</option>
           <option value="drum">Tambor</option>
         </select>
-        <select class="ink-filter" id="inkFilterStock" onchange="renderInkTable()">
+        <select class="ink-filter" id="inkFStock" onchange="renderInkTable()">
           <option value="">Todo el stock</option>
           <option value="low">Stock bajo / agotado</option>
           <option value="ok">Stock OK</option>
         </select>
       </div>
-      <div class="table-wrap">
+      <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -719,14 +612,13 @@ textarea{resize:vertical;min-height:65px}
               <th>Tipo</th>
               <th>Color</th>
               <th>Compatibles</th>
-              <th>Cantidad</th>
+              <th style="min-width:130px">Cantidad</th>
               <th>Mín.</th>
-              <th>Observaciones</th>
               <th></th>
             </tr>
           </thead>
-          <tbody id="inkTableBody">
-            <tr><td colspan="10" class="no-data">// Sin registros</td></tr>
+          <tbody id="inkTbody">
+            <tr><td colspan="9" class="no-data">// Sin registros</td></tr>
           </tbody>
         </table>
       </div>
@@ -734,724 +626,455 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script>
-// ════════════════════════════════════════
-// CONSTANTS
-// ════════════════════════════════════════
-const FB_CONFIG_KEY = 'inventario_ti_v4_fbconfig';
-const SESSION_KEY   = 'inventario_ti_v3_session'; // kept for fallback
-
-// ════════════════════════════════════════
+// ═══════════════════════════
 // STATE
-// ════════════════════════════════════════
-let state        = { departments: [], activeDept: null };
-let inkState     = { items: [] };
-let activeTab    = 'printers';
-let editingPrinter = null, editingPC = null;
-let editingInk   = null;
-let inkScreenOpen = false;
-let currentUser  = null;   // { uid, email, role, rut }
-let isSyncing    = false;
-let _unsubSnapshot = null; // Firestore real-time listener unsubscribe
-let _unsubInkSnapshot = null;
+// ═══════════════════════════
+let state     = { departments: [] };
+let inkState  = { items: [] };
+let currentUser = null;
+let activeTab   = 'printers';
+let inkOpen     = false;
+let editP = null, editPC = null, editInk = null;
+let _unsubInv = null, _unsubInk = null;
 
-function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const fb    = () => window._fb;
 
-// ════════════════════════════════════════
-// FIREBASE HELPERS
-// ════════════════════════════════════════
-function fb() { return window._fb || null; }
-function firebaseReady() { return !!window._fb && !window._firebaseNotConfigured; }
-
-// Convert RUT-based identifier to a valid Firebase email
-function rutToEmail(rut) {
-  const clean = (rut||'').replace(/[^0-9kK]/gi,'').toLowerCase();
-  return `rut_${clean}@inventario.local`;
-}
-function isRutEmail(email) { return (email||'').startsWith('rut_') && email.endsWith('@inventario.local'); }
-function emailToRut(email) { return isRutEmail(email) ? email.replace('rut_','').replace('@inventario.local','') : null; }
-
-// ════════════════════════════════════════
+// ═══════════════════════════
 // INIT
-// ════════════════════════════════════════
+// ═══════════════════════════
 function init() {
-  // Wait for Firebase module to load (it's async type="module")
   let tries = 0;
-  const waitForFb = () => {
+  const wait = () => {
     tries++;
     if (window._fb) {
-      initWithFirebase();
-    } else if (window._firebaseNotConfigured) {
-      initWithoutFirebase();
-    } else if (tries < 30) {
-      setTimeout(waitForFb, 100);
-    } else {
-      initWithoutFirebase();
-    }
-  };
-  setTimeout(waitForFb, 150);
-}
-
-function initWithFirebase() {
-  const { auth, onAuthStateChanged } = fb();
-  onAuthStateChanged(auth, (fbUser) => {
-    if (fbUser) {
-      loadUserProfile(fbUser).then(() => {
-        showApp();
+      const { auth, onAuthStateChanged } = fb();
+      onAuthStateChanged(auth, user => {
+        if (user) {
+          currentUser = { uid: user.uid, email: user.email };
+          showApp();
+        } else {
+          currentUser = null;
+          if (_unsubInv) { _unsubInv(); _unsubInv = null; }
+          if (_unsubInk) { _unsubInk(); _unsubInk = null; }
+          showAuth();
+        }
       });
+    } else if (tries < 40) {
+      setTimeout(wait, 100);
     } else {
-      currentUser = null;
-      if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
-      showLogin();
+      toast('No se pudo conectar con Firebase. Recarga la página.', 'err');
     }
-  });
-}
-
-function initWithoutFirebase() {
-  // Check if there's a stored Firebase config to load
-  const stored = localStorage.getItem(FB_CONFIG_KEY);
-  if (stored) {
-    try {
-      const cfg = JSON.parse(stored);
-      if (cfg.apiKey) {
-        applyFirebaseConfig(cfg);
-        return;
-      }
-    } catch(e) {}
-  }
-  // No config — show login with warning
-  showLogin();
-  toast('Firebase no configurado. Ve a ⚙ Configuración para conectarlo.', 'warn');
-}
-
-async function applyFirebaseConfig(cfg) {
-  // Dynamically initialize Firebase with a new config
-  try {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser: fbDeleteUser, updatePassword } =
-      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp } =
-      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-
-    const app  = initializeApp(cfg, 'dynamic');
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-    window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-      createUserWithEmailAndPassword, fbDeleteUser, updatePassword,
-      doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp };
-    window._firebaseNotConfigured = false;
-    initWithFirebase();
-  } catch(e) {
-    toast('Error al inicializar Firebase: ' + e.message, 'err');
-    showLogin();
-  }
-}
-
-async function loadUserProfile(fbUser) {
-  const { db, doc, getDoc } = fb();
-  const snap = await getDoc(doc(db, 'users', fbUser.uid));
-  const profile = snap.exists() ? snap.data() : {};
-  currentUser = {
-    uid:   fbUser.uid,
-    email: fbUser.email,
-    role:  profile.role || 'viewer',
-    rut:   profile.rut  || emailToRut(fbUser.email) || ''
   };
+  setTimeout(wait, 200);
 }
 
-// ════════════════════════════════════════
-// LOGIN UI
-// ════════════════════════════════════════
-let loginMode = 'rut';
-
-function setLoginMode(mode) {
-  loginMode = mode;
-  const rutBtn   = document.getElementById('loginToggleRut');
-  const emailBtn = document.getElementById('loginToggleEmail');
-  const rutField   = document.getElementById('loginRutField');
-  const emailField = document.getElementById('loginEmailField');
-  if (mode === 'rut') {
-    rutBtn.style.background = 'var(--accent)'; rutBtn.style.color = 'var(--navy)';
-    emailBtn.style.background = 'transparent'; emailBtn.style.color = 'var(--text2)';
-    rutField.style.display = 'block'; emailField.style.display = 'none';
-    setTimeout(()=>document.getElementById('loginRut').focus(), 50);
-  } else {
-    emailBtn.style.background = 'var(--accent)'; emailBtn.style.color = 'var(--navy)';
-    rutBtn.style.background = 'transparent'; rutBtn.style.color = 'var(--text2)';
-    rutField.style.display = 'none'; emailField.style.display = 'block';
-    setTimeout(()=>document.getElementById('loginEmail').focus(), 50);
-  }
-  document.getElementById('loginError').style.display = 'none';
+// ═══════════════════════════
+// AUTH SCREEN
+// ═══════════════════════════
+let authMode = 'login';
+function setAuthMode(m) {
+  authMode = m;
+  document.getElementById('tabLogin').className   = 'auth-tab' + (m==='login'   ? ' active' : '');
+  document.getElementById('tabRegister').className = 'auth-tab' + (m==='register'? ' active' : '');
+  document.getElementById('loginForm').style.display    = m==='login'    ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = m==='register' ? 'block' : 'none';
+  document.getElementById('loginError').style.display   = 'none';
+  document.getElementById('registerError').style.display = 'none';
+  setTimeout(() => {
+    const f = m==='login' ? document.getElementById('lEmail') : document.getElementById('rEmail');
+    f && f.focus();
+  }, 50);
 }
 
-function showLogin() {
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('appHeader').style.display = 'none';
-  document.getElementById('appLayout').style.display = 'none';
-  setLoginMode('rut');
+function showAuth() {
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appHeader').style.display  = 'none';
+  document.getElementById('appLayout').style.display  = 'none';
+  document.getElementById('inkScreen').classList.remove('visible');
 }
 
 function showApp() {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appHeader').style.display = 'block';
-  document.getElementById('appLayout').style.display = 'grid';
-  const uid = currentUser?.rut || currentUser?.email || '';
-  const headerTitle = document.querySelector('.header-title');
-  if (headerTitle) headerTitle.innerHTML = `INVENTARIO TI <span>// ${uid}</span>`;
-  startRealtimeSync();
-  startInkRealtimeSync();
-  updateSyncBadge('syncing');
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appHeader').style.display  = 'block';
+  document.getElementById('appLayout').style.display  = 'grid';
+  const u = currentUser.email || '';
+  document.getElementById('brandUser').textContent = '// ' + u;
+  syncStart();
+  inkSyncStart();
+  updateSync('wait');
 }
 
-// ════════════════════════════════════════
-// AUTH — Firebase
-// ════════════════════════════════════════
 async function doLogin() {
-  const pass = document.getElementById('loginPass').value;
-  const err  = document.getElementById('loginError');
-
-  if (!firebaseReady()) {
-    err.textContent = 'Firebase no configurado. Ve a ⚙ Configuración.';
-    err.style.display = 'block';
-    return;
-  }
-
-  let email;
-  if (loginMode === 'rut') {
-    const rut = document.getElementById('loginRut').value.trim();
-    email = rutToEmail(rut);
-  } else {
-    email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
-  }
-
-  if (!email || !pass) { err.textContent = 'Completa todos los campos.'; err.style.display='block'; return; }
-
-  const { auth, signInWithEmailAndPassword } = fb();
-  const btn = document.querySelector('.login-btn');
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('lPass').value;
+  const err   = document.getElementById('loginError');
+  if (!email || !pass) { err.textContent = 'Completa todos los campos.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('loginBtn');
   btn.textContent = 'Ingresando…'; btn.disabled = true;
-
   try {
+    const { auth, signInWithEmailAndPassword } = fb();
     await signInWithEmailAndPassword(auth, email, pass);
     err.style.display = 'none';
-    // onAuthStateChanged will call showApp()
   } catch(e) {
-    err.textContent = 'Credenciales incorrectas. Verifica tu RUT/correo y contraseña.';
-    err.style.display = 'block';
-    document.getElementById('loginPass').value = '';
-  } finally {
-    btn.textContent = 'Ingresar →'; btn.disabled = false;
-  }
+    const msg = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'
+      ? 'Correo o contraseña incorrectos.' : 'Error: ' + e.message;
+    err.textContent = msg; err.style.display = 'block';
+    document.getElementById('lPass').value = '';
+  } finally { btn.textContent = 'Ingresar →'; btn.disabled = false; }
+}
+
+async function doRegister() {
+  const email = document.getElementById('rEmail').value.trim().toLowerCase();
+  const name  = document.getElementById('rName').value.trim();
+  const pass  = document.getElementById('rPass').value;
+  const pass2 = document.getElementById('rPass2').value;
+  const err   = document.getElementById('registerError');
+  if (!email || !name || !pass || !pass2) { err.textContent = 'Completa todos los campos.'; err.style.display = 'block'; return; }
+  if (pass.length < 6) { err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; err.style.display = 'block'; return; }
+  if (pass !== pass2)  { err.textContent = 'Las contraseñas no coinciden.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('registerBtn');
+  btn.textContent = 'Creando cuenta…'; btn.disabled = true;
+  try {
+    const { auth, createUserWithEmailAndPassword, db, doc, setDoc, serverTimestamp } = fb();
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db, 'users', cred.user.uid), { name, email, role: 'admin', createdAt: new Date().toISOString() });
+    await setDoc(doc(db, 'inventario', cred.user.uid), { departments: [], updatedAt: serverTimestamp() });
+    await setDoc(doc(db, 'tintas', cred.user.uid), { items: [], updatedAt: serverTimestamp() });
+    err.style.display = 'none';
+    toast(`Cuenta creada correctamente. Bienvenido/a, ${name}!`, 'ok');
+    // onAuthStateChanged will call showApp
+  } catch(e) {
+    const msg = e.code === 'auth/email-already-in-use' ? 'Ya existe una cuenta con ese correo.' : 'Error: ' + e.message;
+    err.textContent = msg; err.style.display = 'block';
+  } finally { btn.textContent = 'Crear cuenta →'; btn.disabled = false; }
 }
 
 async function doLogout() {
-  if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
-  if (_unsubInkSnapshot) { _unsubInkSnapshot(); _unsubInkSnapshot = null; }
-  if (firebaseReady()) {
-    const { auth, signOut } = fb();
-    await signOut(auth).catch(()=>{});
-  }
-  currentUser = null;
-  state = { departments: [], activeDept: null };
+  if (_unsubInv) { _unsubInv(); _unsubInv = null; }
+  if (_unsubInk) { _unsubInk(); _unsubInk = null; }
+  const { auth, signOut } = fb();
+  await signOut(auth).catch(()=>{});
+  state    = { departments: [] };
   inkState = { items: [] };
-  inkScreenOpen = false;
-  document.getElementById('inkScreen').classList.remove('visible');
-  document.getElementById('loginRut').value = '';
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginPass').value = '';
-  showLogin();
+  inkOpen  = false;
+  activeTab = 'printers';
+  document.getElementById('lEmail').value = '';
+  document.getElementById('lPass').value  = '';
+  showAuth();
 }
 
-function formatRut(inp) {
-  let raw = inp.value.replace(/[^0-9kK]/g,'').toUpperCase();
-  if(raw === '123'){ inp.value = '12-3'; return; }
-  if (raw.length > 1) {
-    const dv = raw.slice(-1);
-    let body = raw.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-    inp.value = body + '-' + dv;
-  } else { inp.value = raw; }
+// ═══════════════════════════
+// SYNC BADGE
+// ═══════════════════════════
+function updateSync(s) {
+  const b = document.getElementById('syncBadge');
+  const d = document.getElementById('syncDot');
+  const l = document.getElementById('syncLabel');
+  if (!b) return;
+  b.className = 'sync-dot-wrap';
+  d.className = 'sdot';
+  if (s === 'ok')   { b.classList.add('sync-ok');   d.classList.add('sdot-g'); l.textContent = 'Sincronizado'; }
+  if (s === 'wait') { b.classList.add('sync-wait');  d.classList.add('sdot-b'); l.textContent = 'Conectando…'; }
+  if (s === 'off')  { b.classList.add('sync-off');   d.classList.add('sdot-y'); l.textContent = 'Sin conexión'; }
 }
 
-// ════════════════════════════════════════
-// FIRESTORE — Real-time sync
-// ════════════════════════════════════════
-function startRealtimeSync() {
-  if (!firebaseReady() || !currentUser?.uid) return;
-  if (_unsubSnapshot) _unsubSnapshot();
-
+// ═══════════════════════════
+// FIRESTORE SYNC — Inventario
+// ═══════════════════════════
+function syncStart() {
+  if (!currentUser?.uid) return;
+  if (_unsubInv) _unsubInv();
   const { db, doc, onSnapshot } = fb();
-  const docRef = doc(db, 'inventario', currentUser.uid);
-
-  _unsubSnapshot = onSnapshot(docRef, (snap) => {
+  _unsubInv = onSnapshot(doc(db, 'inventario', currentUser.uid), snap => {
     if (snap.exists()) {
-      const remote = snap.data();
-      state.departments = remote.departments || [];
-      // Preserve active dept selection
-      if (state.activeDept && !state.departments.find(d=>d.id===state.activeDept)) {
-        state.activeDept = null;
-      }
-    } else {
-      state = { departments: [], activeDept: null };
+      state.departments = snap.data().departments || [];
     }
-    renderSidebar();
-    renderMain();
-    updateSyncBadge('online');
-  }, (err) => {
-    console.error('Firestore error', err);
-    updateSyncBadge('offline');
-    toast('Error de sincronización: ' + err.message, 'err');
-  });
+    renderSidebar(); renderMain(); updateSync('ok');
+  }, e => { updateSync('off'); toast('Error sync: ' + e.message, 'err'); });
 }
 
 async function saveState() {
-  if (!firebaseReady() || !currentUser?.uid) return;
-  updateSyncBadge('syncing');
+  if (!currentUser?.uid) return;
   const { db, doc, setDoc, serverTimestamp } = fb();
   try {
-    await setDoc(doc(db, 'inventario', currentUser.uid), {
-      departments: state.departments,
-      updatedAt: serverTimestamp()
-    });
-    // onSnapshot will update badge to 'online'
-  } catch(e) {
-    updateSyncBadge('offline');
-    toast('Error al guardar: ' + e.message, 'err');
-  }
+    await setDoc(doc(db, 'inventario', currentUser.uid), { departments: state.departments, updatedAt: serverTimestamp() });
+  } catch(e) { toast('Error al guardar: ' + e.message, 'err'); }
 }
 
-// ════════════════════════════════════════
-// INK — Firebase real-time sync
-// ════════════════════════════════════════
-function startInkRealtimeSync() {
-  if (!firebaseReady() || !currentUser?.uid) return;
-  if (_unsubInkSnapshot) _unsubInkSnapshot();
+// ═══════════════════════════
+// FIRESTORE SYNC — Tintas
+// ═══════════════════════════
+function inkSyncStart() {
+  if (!currentUser?.uid) return;
+  if (_unsubInk) _unsubInk();
   const { db, doc, onSnapshot } = fb();
-  const docRef = doc(db, 'tintas', currentUser.uid);
-  _unsubInkSnapshot = onSnapshot(docRef, (snap) => {
-    if (snap.exists()) {
-      inkState.items = snap.data().items || [];
-    } else {
-      inkState.items = [];
-    }
-    if (inkScreenOpen) { renderInkStats(); renderInkTable(); }
-  }, (err) => {
-    console.error('Ink Firestore error', err);
+  _unsubInk = onSnapshot(doc(db, 'tintas', currentUser.uid), snap => {
+    inkState.items = snap.exists() ? snap.data().items || [] : [];
+    updateInkAlertDot();
+    if (inkOpen) { renderInkStats(); renderInkTable(); }
   });
 }
 
 async function saveInkState() {
-  if (!firebaseReady() || !currentUser?.uid) return;
+  if (!currentUser?.uid) return;
   const { db, doc, setDoc, serverTimestamp } = fb();
   try {
-    await setDoc(doc(db, 'tintas', currentUser.uid), {
-      items: inkState.items,
-      updatedAt: serverTimestamp()
-    });
-  } catch(e) {
-    toast('Error al guardar tintas: ' + e.message, 'err');
-  }
+    await setDoc(doc(db, 'tintas', currentUser.uid), { items: inkState.items, updatedAt: serverTimestamp() });
+  } catch(e) { toast('Error al guardar tintas: ' + e.message, 'err'); }
 }
 
-// ════════════════════════════════════════
-// INK SCREEN TOGGLE
-// ════════════════════════════════════════
+// Dot rojo en el botón de tintas del header
+function updateInkAlertDot() {
+  const lowItems = inkState.items.filter(i => (i.qty || 0) <= (i.minQty || 0));
+  const dot = document.getElementById('inkAlertDot');
+  if (dot) dot.style.display = lowItems.length ? 'inline-block' : 'none';
+}
+
+// ═══════════════════════════
+// INK SCREEN
+// ═══════════════════════════
 function toggleInkScreen() {
-  inkScreenOpen = !inkScreenOpen;
-  const screen = document.getElementById('inkScreen');
-  const appLayout = document.getElementById('appLayout');
-  const appHeader = document.getElementById('appHeader');
-  if (inkScreenOpen) {
-    screen.classList.add('visible');
-    appLayout.style.display = 'none';
-    appHeader.style.display = 'none';
-    screen.style.paddingTop = '0';
-    renderInkStats();
-    renderInkTable();
+  inkOpen = !inkOpen;
+  const scr  = document.getElementById('inkScreen');
+  const hdr  = document.getElementById('appHeader');
+  const lay  = document.getElementById('appLayout');
+  if (inkOpen) {
+    scr.classList.add('visible');
+    hdr.style.display = 'none';
+    lay.style.display = 'none';
+    renderInkStats(); renderInkTable();
   } else {
-    screen.classList.remove('visible');
-    appLayout.style.display = 'grid';
-    appHeader.style.display = 'block';
+    scr.classList.remove('visible');
+    hdr.style.display = 'block';
+    lay.style.display = 'grid';
   }
 }
 
-// ════════════════════════════════════════
+// ═══════════════════════════
 // INK CRUD
-// ════════════════════════════════════════
+// ═══════════════════════════
 function openAddInk() {
-  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
-  editingInk = null;
-  document.getElementById('modalInkTitle').textContent = 'Agregar tinta / tóner';
-  document.getElementById('inkBrand').value = '';
-  document.getElementById('inkModel').value = '';
-  document.getElementById('inkType').value = 'toner';
-  document.getElementById('inkColor').value = '';
-  document.getElementById('inkQty').value = '1';
+  editInk = null;
+  document.getElementById('inkModalTitle').textContent = 'Agregar tinta';
+  ['inkBrand','inkModel','inkColor','inkCompat'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('inkType').value   = 'toner';
+  document.getElementById('inkQty').value    = '1';
   document.getElementById('inkMinQty').value = '2';
-  document.getElementById('inkCompat').value = '';
-  document.getElementById('inkNotes').value = '';
   document.getElementById('modalInk').style.display = 'flex';
-  setTimeout(()=>document.getElementById('inkBrand').focus(), 50);
+  setTimeout(() => document.getElementById('inkBrand').focus(), 60);
 }
 
 function openEditInk(id) {
-  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
-  const item = inkState.items.find(i=>i.id===id);
+  const item = inkState.items.find(i => i.id === id);
   if (!item) return;
-  editingInk = id;
-  document.getElementById('modalInkTitle').textContent = 'Editar tinta / tóner';
-  document.getElementById('inkBrand').value = item.brand || '';
-  document.getElementById('inkModel').value = item.model || '';
-  document.getElementById('inkType').value = item.type || 'toner';
-  document.getElementById('inkColor').value = item.color || '';
-  document.getElementById('inkQty').value = item.qty ?? 0;
+  editInk = id;
+  document.getElementById('inkModalTitle').textContent = 'Editar tinta';
+  document.getElementById('inkBrand').value  = item.brand  || '';
+  document.getElementById('inkModel').value  = item.model  || '';
+  document.getElementById('inkType').value   = item.type   || 'toner';
+  document.getElementById('inkColor').value  = item.color  || '';
+  document.getElementById('inkQty').value    = item.qty    ?? 0;
   document.getElementById('inkMinQty').value = item.minQty ?? 2;
   document.getElementById('inkCompat').value = item.compat || '';
-  document.getElementById('inkNotes').value = item.notes || '';
   document.getElementById('modalInk').style.display = 'flex';
-  setTimeout(()=>document.getElementById('inkBrand').focus(), 50);
+  setTimeout(() => document.getElementById('inkBrand').focus(), 60);
 }
 
 function saveInk() {
-  const brand = document.getElementById('inkBrand').value.trim();
-  const model = document.getElementById('inkModel').value.trim();
-  const type  = document.getElementById('inkType').value;
-  const color = document.getElementById('inkColor').value.trim();
-  const qty   = parseInt(document.getElementById('inkQty').value) || 0;
-  const minQty= parseInt(document.getElementById('inkMinQty').value) || 0;
-  const compat= document.getElementById('inkCompat').value.trim();
-  const notes = document.getElementById('inkNotes').value.trim();
+  const brand  = document.getElementById('inkBrand').value.trim();
+  const model  = document.getElementById('inkModel').value.trim();
+  const type   = document.getElementById('inkType').value;
+  const color  = document.getElementById('inkColor').value.trim();
+  const qty    = parseInt(document.getElementById('inkQty').value) || 0;
+  const minQty = parseInt(document.getElementById('inkMinQty').value) || 0;
+  const compat = document.getElementById('inkCompat').value.trim();
 
-  if (!brand || !model) { toast('Marca y modelo son obligatorios.','warn'); return; }
+  if (!brand || !model) { toast('Marca y modelo son obligatorios.', 'warn'); return; }
 
-  if (editingInk) {
-    const idx = inkState.items.findIndex(i=>i.id===editingInk);
-    if (idx >= 0) inkState.items[idx] = { ...inkState.items[idx], brand, model, type, color, qty, minQty, compat, notes };
-    toast('Tinta actualizada.','ok');
+  if (editInk) {
+    const idx = inkState.items.findIndex(i => i.id === editInk);
+    if (idx >= 0) inkState.items[idx] = { ...inkState.items[idx], brand, model, type, color, qty, minQty, compat };
+    toast('Tinta actualizada.', 'ok');
   } else {
-    inkState.items.push({ id: genId(), brand, model, type, color, qty, minQty, compat, notes, createdAt: new Date().toISOString() });
-    toast('Tinta agregada.','ok');
+    inkState.items.push({ id: genId(), brand, model, type, color, qty, minQty, compat, createdAt: new Date().toISOString() });
+    toast('Tinta agregada.', 'ok');
+    // Alert if already low when added
+    if (qty <= minQty) {
+      setTimeout(() => toast(`⚠ "${brand} ${model}" ya está en stock bajo (${qty}).`, 'warn'), 400);
+    }
   }
   saveInkState();
   closeModal('modalInk');
-  renderInkStats();
-  renderInkTable();
+  renderInkStats(); renderInkTable();
 }
 
 function deleteInk(id) {
-  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
   if (!confirm('¿Eliminar este registro?')) return;
-  inkState.items = inkState.items.filter(i=>i.id!==id);
-  saveInkState();
-  renderInkStats();
-  renderInkTable();
-  toast('Registro eliminado.','info');
+  inkState.items = inkState.items.filter(i => i.id !== id);
+  saveInkState(); renderInkStats(); renderInkTable();
+  toast('Registro eliminado.', 'info');
 }
 
 function adjustQty(id, delta) {
-  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
-  const item = inkState.items.find(i=>i.id===id);
+  const item = inkState.items.find(i => i.id === id);
   if (!item) return;
-  item.qty = Math.max(0, (item.qty || 0) + delta);
+  const prev = item.qty || 0;
+  item.qty = Math.max(0, prev + delta);
+
+  const min = item.minQty ?? 2;
+  const name = `${item.brand} ${item.model}`;
+
+  // Alert when dropping to or below minimum
+  if (delta < 0 && item.qty <= min && prev > min) {
+    toast(`⚠ ¡STOCK BAJO! "${name}" llegó a ${item.qty} unidad(es). Solicita compra.`, 'warn');
+  }
+  if (item.qty === 0) {
+    toast(`🚨 "${name}" está AGOTADA. Compra urgente necesaria.`, 'err');
+  }
+
   saveInkState();
-  renderInkStats();
-  renderInkTable();
+  renderInkStats(); renderInkTable();
 }
 
-// ════════════════════════════════════════
+// ═══════════════════════════
 // INK RENDER
-// ════════════════════════════════════════
-function inkTypeLabel(t) {
-  return t==='toner'?'Tóner':t==='liquid'?'Tinta líquida':t==='cartridge'?'Cartucho':t==='drum'?'Tambor':'—';
-}
-function inkTypeClass(t) {
-  return t==='toner'?'ink-toner':t==='liquid'?'ink-liquid':t==='cartridge'?'ink-cartridge':t==='drum'?'ink-drum':'';
-}
+// ═══════════════════════════
+const inkTypeLabel = t => t==='toner'?'Tóner':t==='liquid'?'Tinta líquida':t==='cartridge'?'Cartucho':t==='drum'?'Tambor':'—';
+const inkTypeCls   = t => t==='toner'?'ib-toner':t==='liquid'?'ib-liquid':t==='cartridge'?'ib-cartridge':t==='drum'?'ib-drum':'';
 
 function renderInkStats() {
-  const el = document.getElementById('inkStatsBar');
+  const el = document.getElementById('inkStats');
   if (!el) return;
-  const items = inkState.items;
-  const total = items.length;
-  const low   = items.filter(i=>(i.qty||0) <= (i.minQty||0)).length;
-  const zero  = items.filter(i=>(i.qty||0) === 0).length;
-  const totalUnits = items.reduce((s,i)=>s+(i.qty||0),0);
+  const items      = inkState.items;
+  const total      = items.length;
+  const totalUnits = items.reduce((s,i) => s+(i.qty||0), 0);
+  const low        = items.filter(i => (i.qty||0) <= (i.minQty||0) && (i.qty||0) > 0).length;
+  const zero       = items.filter(i => (i.qty||0) === 0).length;
+
   el.innerHTML = `
     <div class="ink-stat"><div class="ink-stat-val">${total}</div><div class="ink-stat-lbl">Referencias</div></div>
     <div class="ink-stat"><div class="ink-stat-val">${totalUnits}</div><div class="ink-stat-lbl">Unidades totales</div></div>
-    <div class="ink-stat"><div class="ink-stat-val" style="color:var(--yellow)">${low}</div><div class="ink-stat-lbl">Stock bajo / mínimo</div></div>
+    <div class="ink-stat"><div class="ink-stat-val" style="color:var(--yellow)">${low}</div><div class="ink-stat-lbl">Stock bajo</div></div>
     <div class="ink-stat"><div class="ink-stat-val" style="color:var(--red)">${zero}</div><div class="ink-stat-lbl">Agotadas</div></div>`;
+
+  // Alert banner
+  const banner   = document.getElementById('alertBanner');
+  const alertEl  = document.getElementById('alertItems');
+  const critItems = inkState.items.filter(i => (i.qty||0) <= (i.minQty||0));
+  if (critItems.length) {
+    banner.classList.add('visible');
+    alertEl.innerHTML = critItems.map(i => {
+      const qty = i.qty || 0;
+      const isZero = qty === 0;
+      return `<div class="alert-chip ${isZero?'alert-chip-zero':''}">
+        <span class="alert-chip-qty">${qty === 0 ? 'AGOTADA' : qty + ' uds.'}</span>
+        <span class="alert-chip-name">${i.brand} ${i.model} ${i.color ? '('+i.color+')' : ''}</span>
+      </div>`;
+    }).join('');
+  } else {
+    banner.classList.remove('visible');
+  }
 }
 
 function renderInkTable() {
-  const tbody = document.getElementById('inkTableBody');
+  const tbody  = document.getElementById('inkTbody');
   if (!tbody) return;
-  const search  = (document.getElementById('inkSearchInput')?.value || '').toLowerCase();
-  const fType   = document.getElementById('inkFilterType')?.value || '';
-  const fStock  = document.getElementById('inkFilterStock')?.value || '';
-  const canEdit = currentUser?.role !== 'viewer';
+  const search = (document.getElementById('inkSearch')?.value || '').toLowerCase();
+  const fType  = document.getElementById('inkFType')?.value || '';
+  const fStock = document.getElementById('inkFStock')?.value || '';
 
   let items = inkState.items.filter(i => {
     const q = `${i.brand} ${i.model} ${i.color} ${i.compat} ${inkTypeLabel(i.type)}`.toLowerCase();
     if (search && !q.includes(search)) return false;
-    if (fType && i.type !== fType) return false;
+    if (fType  && i.type !== fType)    return false;
     if (fStock === 'low' && (i.qty||0) > (i.minQty||0)) return false;
     if (fStock === 'ok'  && (i.qty||0) <= (i.minQty||0)) return false;
     return true;
   });
 
   if (!items.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="no-data">// Sin resultados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="no-data">// Sin resultados</td></tr>';
     return;
   }
 
   tbody.innerHTML = items.map((item, idx) => {
-    const qty = item.qty || 0;
-    const min = item.minQty || 0;
-    const qtyClass = qty === 0 ? 'ink-qty-low' : qty <= min ? 'ink-qty-mid' : 'ink-qty-ok';
-    return `<tr>
+    const qty  = item.qty  || 0;
+    const min  = item.minQty || 0;
+    const qCls = qty === 0 ? 'qty-zero' : qty <= min ? 'qty-low' : qty <= min + 2 ? 'qty-mid' : 'qty-ok';
+    const rowHL = qty <= min ? 'background:rgba(244,63,94,0.04)' : '';
+    return `<tr style="${rowHL}">
       <td class="td-num">${idx+1}</td>
       <td style="font-weight:500">${item.brand||'—'}</td>
       <td style="font-family:var(--mono);font-size:12px">${item.model||'—'}</td>
-      <td><span class="ink-type-badge ${inkTypeClass(item.type)}">${inkTypeLabel(item.type)}</span></td>
+      <td><span class="ink-badge ${inkTypeCls(item.type)}">${inkTypeLabel(item.type)}</span></td>
       <td style="font-size:12px">${item.color||'—'}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.compat||''}">${item.compat||'—'}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.compat||''}">${item.compat||'—'}</td>
       <td>
-        <div class="qty-controls">
-          ${canEdit?`<button class="qty-btn" onclick="adjustQty('${item.id}',-1)" title="Restar">−</button>`:''}
-          <span class="ink-qty ${qtyClass}">${qty}</span>
-          ${canEdit?`<button class="qty-btn" onclick="adjustQty('${item.id}',1)" title="Sumar">+</button>`:''}
+        <div class="qty-wrap">
+          <button class="qty-btn" onclick="adjustQty('${item.id}',-1)" title="Restar uno">−</button>
+          <span class="qty-num ${qCls}">${qty}</span>
+          <button class="qty-btn" onclick="adjustQty('${item.id}',1)" title="Sumar uno">+</button>
         </div>
       </td>
       <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${min}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.notes||''}">${item.notes||'—'}</td>
       <td>
         <div class="td-actions">
-          ${canEdit?`<button class="btn btn-ghost btn-sm" onclick="openEditInk('${item.id}')">Editar</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditInk('${item.id}')">Editar</button>
           <button class="btn btn-danger btn-sm" onclick="deleteInk('${item.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          </button>`:''}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H5L4 6"/></svg>
+          </button>
         </div>
       </td>
     </tr>`;
   }).join('');
 }
 
-// ════════════════════════════════════════
-// EXPORT INK EXCEL
-// ════════════════════════════════════════
-function exportInkExcel() {
-  if (!inkState.items.length) { toast('No hay datos para exportar.','warn'); return; }
-  const rows = [['#','Marca','Modelo','Tipo','Color','Cantidad','Mínimo','Compatibles','Observaciones']];
-  inkState.items.forEach((item,i)=>{
-    rows.push([i+1, item.brand||'', item.model||'', inkTypeLabel(item.type), item.color||'', item.qty||0, item.minQty||0, item.compat||'', item.notes||'']);
-  });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:4},{wch:14},{wch:16},{wch:14},{wch:14},{wch:10},{wch:8},{wch:30},{wch:30}];
-  XLSX.utils.book_append_sheet(wb, ws, 'Tintas');
-  XLSX.writeFile(wb, `Inventario_Tintas_${new Date().toISOString().slice(0,10)}.xlsx`);
-  toast('Excel de tintas exportado.','ok');
-}
-
-// ════════════════════════════════════════
-// FIREBASE CONFIG (modal tab 1)
-// ════════════════════════════════════════
-async function saveFirebaseConfig() {
-  const raw = document.getElementById('cfgFirebaseJson').value.trim();
-  if (!raw) { showCfgStatus('error','Pega tu configuración de Firebase.'); return; }
-  let cfg;
-  try {
-    // Allow both object literal style and JSON
-    cfg = JSON.parse(raw);
-  } catch(e) {
-    showCfgStatus('error', 'JSON inválido. Verifica el formato.');
-    return;
-  }
-  if (!cfg.apiKey || !cfg.projectId) {
-    showCfgStatus('error', 'Configuración incompleta. Falta apiKey o projectId.');
-    return;
-  }
-  localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
-  showCfgStatus('ok', '⏳ Conectando con Firebase…');
-  await applyFirebaseConfig(cfg);
-  showCfgStatus('ok', `✅ Firebase conectado: ${cfg.projectId}`);
-  document.getElementById('fbProjectId').textContent = `Proyecto: ${cfg.projectId}`;
-  document.getElementById('fbConfigured').style.display = 'block';
-  document.getElementById('fbNotConfigured').style.display = 'none';
-  toast('Firebase conectado correctamente.', 'ok');
-}
-
-function clearFirebaseConfig() {
-  if (!confirm('¿Limpiar configuración de Firebase? Deberás volver a configurarlo.')) return;
-  localStorage.removeItem(FB_CONFIG_KEY);
-  document.getElementById('cfgFirebaseJson').value = '';
-  document.getElementById('cfgStatus').style.display = 'none';
-  document.getElementById('fbConfigured').style.display = 'none';
-  document.getElementById('fbNotConfigured').style.display = 'block';
-  toast('Configuración limpiada.', 'info');
-}
-
-function showCfgStatus(type, msg) {
-  const el = document.getElementById('cfgStatus');
-  el.textContent = msg;
-  el.className = 'config-status ' + (type==='ok'?'config-ok':'config-err');
-  el.style.display = 'block';
-}
-
-// ════════════════════════════════════════
-// ONLINE/OFFLINE MONITOR
-// ════════════════════════════════════════
-function monitorOnline() {
-  window.addEventListener('online',  () => { toast('Conexión restaurada.', 'info'); startRealtimeSync(); startInkRealtimeSync(); });
-  window.addEventListener('offline', () => { updateSyncBadge('offline'); toast('Sin conexión. Los cambios se sincronizarán al reconectarte.', 'warn'); });
-}
-
-function checkOnline() {
-  if (!navigator.onLine) updateSyncBadge('offline');
-}
-
-function updateSyncBadge(status) {
-  const badge = document.getElementById('syncBadge');
-  const dot   = document.getElementById('syncDot');
-  const label = document.getElementById('syncLabel');
-  if (!badge) return;
-  badge.className = 'sync-badge';
-  dot.className = 'sync-dot';
-  if (status === 'online') {
-    badge.classList.add('sync-online'); dot.classList.add('sync-dot-green'); label.textContent = 'Firebase sync';
-  } else if (status === 'syncing') {
-    badge.classList.add('sync-syncing'); dot.classList.add('sync-dot-blue'); label.textContent = 'Sincronizando…';
-  } else if (status === 'nocfg') {
-    badge.classList.add('sync-offline'); dot.classList.add('sync-dot-yellow'); label.textContent = 'Sin Firebase';
-  } else {
-    badge.classList.add('sync-offline'); dot.classList.add('sync-dot-yellow'); label.textContent = 'Sin conexión';
-  }
-}
-
-// ════════════════════════════════════════
-// USER MANAGEMENT — Firestore + Auth
-// ════════════════════════════════════════
-async function renderUserList() {
-  const el = document.getElementById('userList');
-  if (!firebaseReady()) {
-    el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Firebase no configurado.</div>';
-    return;
-  }
-  el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Cargando usuarios…</div>';
-  const { db, collection, getDocs } = fb();
-  try {
-    const snap = await getDocs(collection(db, 'users'));
-    const users = [];
-    snap.forEach(d => users.push({ uid: d.id, ...d.data() }));
-    if (!users.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Sin usuarios registrados.</div>'; return; }
-    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px">
-      <tr>
-        <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Identificador</th>
-        <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Rol</th>
-        <th style="background:rgba(0,0,0,0.2)"></th>
-      </tr>
-      ${users.map(u=>`<tr>
-        <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px">${u.rut || u.email || u.uid}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;padding:2px 8px;border-radius:20px;${u.role==='admin'?'background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)':'background:var(--surface);color:var(--text2);border:1px solid var(--border)'}">${u.role==='admin'?'Admin':'Solo lectura'}</span></td>
-        <td style="padding:7px 8px;border-bottom:1px solid var(--border);text-align:right">
-          ${u.uid!==currentUser?.uid?`<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.uid}')">Eliminar</button>`:'<span style="font-size:11px;color:var(--text3)">Tú</span>'}
-        </td>
-      </tr>`).join('')}
-    </table>`;
-  } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);font-size:12px">Error al cargar usuarios: ${e.message}</div>`;
-  }
-}
-
-async function addUser() {
-  if (!firebaseReady()) { toast('Firebase no configurado.', 'err'); return; }
-  if (currentUser?.role !== 'admin') { toast('Solo administradores pueden crear usuarios.', 'warn'); return; }
-  const rut   = document.getElementById('newUserRut').value.trim();
-  const email = (document.getElementById('newUserEmail').value || '').trim().toLowerCase();
-  const pass  = document.getElementById('newUserPass').value;
-  const role  = document.getElementById('newUserRole').value;
-
-  if (!pass || (!rut && !email)) { toast('Completa al menos RUT o correo, y contraseña.', 'err'); return; }
-  if (pass.length < 6) { toast('La contraseña debe tener al menos 6 caracteres.', 'err'); return; }
-
-  const loginEmail = email || rutToEmail(rut);
-  const { auth, createUserWithEmailAndPassword, db, doc, setDoc } = fb();
-
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, loginEmail, pass);
-    await setDoc(doc(db, 'users', cred.user.uid), { rut: rut||'', email: email||loginEmail, role, createdAt: new Date().toISOString() });
-    // Also create empty inventory docs
-    await setDoc(doc(db, 'inventario', cred.user.uid), { departments: [], updatedAt: new Date().toISOString() });
-    await setDoc(doc(db, 'tintas', cred.user.uid), { items: [], updatedAt: new Date().toISOString() });
-    document.getElementById('newUserRut').value = '';
-    document.getElementById('newUserEmail').value = '';
-    document.getElementById('newUserPass').value = '';
-    renderUserList();
-    toast(`Usuario ${rut||email} creado.`, 'ok');
-  } catch(e) {
-    toast('Error al crear usuario: ' + (e.code === 'auth/email-already-in-use' ? 'Ya existe un usuario con ese RUT/correo.' : e.message), 'err');
-  }
-}
-
-async function deleteUser(uid) {
-  if (!firebaseReady()) return;
-  if (currentUser?.role !== 'admin') { toast('Sin permisos.', 'warn'); return; }
-  if (!confirm('¿Eliminar este usuario? Sus datos de inventario también se eliminarán.')) return;
-  const { db, doc, deleteDoc } = fb();
-  try {
-    await deleteDoc(doc(db, 'users', uid));
-    await deleteDoc(doc(db, 'inventario', uid));
-    renderUserList();
-    toast('Usuario eliminado.', 'info');
-  } catch(e) { toast('Error al eliminar: ' + e.message, 'err'); }
-}
-
-// ════════════════════════════════════════
+// ═══════════════════════════
 // DEPT CRUD
-// ════════════════════════════════════════
-function addDepartment() {
-  if (currentUser?.role === 'viewer') { toast('Solo lectura. Sin permisos para editar.','warn'); return; }
+// ═══════════════════════════
+let activeDept = null;
+
+function addDept() {
   const inp = document.getElementById('newDeptName');
   const name = inp.value.trim();
   if (!name) { inp.focus(); return; }
-  if (state.departments.find(d=>d.name.toLowerCase()===name.toLowerCase())) {
-    toast('Ya existe un departamento con ese nombre.','warn'); return;
-  }
-  const dept = { id:genId(), name, printers:[], pcs:[] };
+  if (state.departments.find(d => d.name.toLowerCase() === name.toLowerCase())) { toast('Ya existe ese departamento.', 'warn'); return; }
+  const dept = { id: genId(), name, printers: [], pcs: [] };
   state.departments.push(dept);
   inp.value = '';
   saveState(); renderSidebar(); setActiveDept(dept.id);
 }
 
-function deleteDepartment(id) {
-  if (currentUser?.role === 'viewer') { toast('Sin permisos.','warn'); return; }
+function deleteDept(id) {
   if (!confirm('¿Eliminar este departamento y todos sus datos?')) return;
-  state.departments = state.departments.filter(d=>d.id!==id);
-  if (state.activeDept===id) state.activeDept=null;
+  state.departments = state.departments.filter(d => d.id !== id);
+  if (activeDept === id) activeDept = null;
   saveState(); renderSidebar(); renderMain();
 }
 
 function setActiveDept(id) {
-  state.activeDept = id;
+  activeDept = id;
   renderSidebar(); renderMain();
 }
 
-// ════════════════════════════════════════
-// RENDER SIDEBAR
-// ════════════════════════════════════════
 function renderSidebar() {
   const list = document.getElementById('deptList');
   if (!state.departments.length) {
-    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;font-family:var(--mono)">// Sin departamentos</div>';
+    list.innerHTML = '<div style="text-align:center;padding:18px;color:var(--text3);font-size:12px;font-family:var(--mono)">// Sin departamentos</div>';
   } else {
-    list.innerHTML = state.departments.map(d=>`
-      <div class="dept-item ${d.id===state.activeDept?'active':''}" onclick="setActiveDept('${d.id}')">
+    list.innerHTML = state.departments.map(d => `
+      <div class="dept-item ${d.id===activeDept?'active':''}" onclick="setActiveDept('${d.id}')">
         <div class="dept-item-name">
           <div class="dept-item-dot"></div>
           <span>${d.name}</span>
         </div>
-        <div class="dept-badges">
-          <span class="badge badge-blue">${d.printers.length}🖨</span>
-          <span class="badge badge-gray">${d.pcs.length}🖥</span>
+        <div style="display:flex;gap:4px">
+          <span class="dbadge dbadge-b">${d.printers.length}</span>
+          <span class="dbadge dbadge-g">${d.pcs.length}</span>
         </div>
       </div>`).join('');
   }
@@ -1460,498 +1083,372 @@ function renderSidebar() {
 
 function renderGlobalStats() {
   const el = document.getElementById('globalStats');
-  const tp  = state.departments.reduce((s,d)=>s+d.printers.length,0);
-  const tpc = state.departments.reduce((s,d)=>s+d.pcs.length,0);
-  const bp  = state.departments.reduce((s,d)=>s+d.printers.filter(p=>p.status==='bad').length,0);
-  const rp  = state.departments.reduce((s,d)=>s+d.printers.filter(p=>p.status==='review').length,0);
-  const bpc = state.departments.reduce((s,d)=>s+d.pcs.filter(p=>p.status==='bad').length,0);
-  el.innerHTML = `<table class="stats-table">
+  const tp  = state.departments.reduce((s,d) => s+d.printers.length, 0);
+  const tpc = state.departments.reduce((s,d) => s+d.pcs.length, 0);
+  const bp  = state.departments.reduce((s,d) => s+d.printers.filter(p=>p.status==='bad').length, 0);
+  const rp  = state.departments.reduce((s,d) => s+d.printers.filter(p=>p.status==='review').length, 0);
+  const bpc = state.departments.reduce((s,d) => s+d.pcs.filter(p=>p.status==='bad').length, 0);
+  el.innerHTML = `<table class="stats-tbl">
     <tr><td>Departamentos</td><td>${state.departments.length}</td></tr>
     <tr><td>Impresoras</td><td>${tp}</td></tr>
-    <tr><td>— Malas</td><td class="${bp?'stat-red':''}">${bp}</td></tr>
-    <tr><td>— Revisión</td><td class="${rp?'stat-yellow':''}">${rp}</td></tr>
+    <tr><td>— Malas</td><td class="${bp?'s-red':''}">${bp}</td></tr>
+    <tr><td>— Revisión</td><td class="${rp?'s-yellow':''}">${rp}</td></tr>
     <tr><td>PCs / AIO</td><td>${tpc}</td></tr>
-    <tr><td>— Malos</td><td class="${bpc?'stat-red':''}">${bpc}</td></tr>
+    <tr><td>— Malos</td><td class="${bpc?'s-red':''}">${bpc}</td></tr>
   </table>`;
 }
 
-// ════════════════════════════════════════
+// ═══════════════════════════
 // RENDER MAIN
-// ════════════════════════════════════════
+// ═══════════════════════════
 function renderMain() {
   const main = document.getElementById('mainContent');
-  const dept = state.departments.find(d=>d.id===state.activeDept);
+  const dept = state.departments.find(d => d.id === activeDept);
   if (!dept) {
     main.innerHTML = `<div class="empty-state">
       <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
       <div class="empty-title">Selecciona un departamento</div>
-      <div class="empty-sub">Elige un departamento del panel izquierdo o crea uno nuevo para registrar equipos.</div>
+      <div class="empty-sub">Elige uno del panel izquierdo o crea uno nuevo.</div>
     </div>`;
     return;
   }
-  const canEdit = currentUser?.role !== 'viewer';
-  const tab = activeTab;
   main.innerHTML = `
-    <div class="dept-header-card">
-      <div class="dept-header-top">
-        <div class="dept-header-left">
+    <div class="dept-hdr">
+      <div class="dept-hdr-top">
+        <div>
           <h1>${dept.name}</h1>
           <p>${dept.printers.length} impresora(s) · ${dept.pcs.length} equipo(s)</p>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${canEdit?`<button class="btn btn-danger btn-sm" onclick="deleteDepartment('${dept.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Eliminar
-          </button>`:''}
-        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteDept('${dept.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H5L4 6"/></svg> Eliminar
+        </button>
       </div>
       <div class="tabs">
-        <button class="tab ${tab==='printers'?'active':''}" onclick="switchTab('printers')">
+        <button class="tab ${activeTab==='printers'?'active':''}" onclick="switchTab('printers')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Impresoras <span class="count-pill">${dept.printers.length}</span>
+          Impresoras <span class="cpill">${dept.printers.length}</span>
         </button>
-        <button class="tab ${tab==='pcs'?'active':''}" onclick="switchTab('pcs')">
+        <button class="tab ${activeTab==='pcs'?'active':''}" onclick="switchTab('pcs')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          PCs / AIO <span class="count-pill">${dept.pcs.length}</span>
+          PCs / AIO <span class="cpill">${dept.pcs.length}</span>
         </button>
       </div>
     </div>
-    ${tab==='printers' ? renderPrintersTab(dept, canEdit) : renderPCsTab(dept, canEdit)}
-  `;
+    ${activeTab==='printers' ? renderPTab(dept) : renderPCTab(dept)}`;
 }
 
-function switchTab(t) { activeTab=t; renderMain(); }
+function switchTab(t) { activeTab = t; renderMain(); }
 
-function renderPrintersTab(dept, canEdit) {
-  return `<div class="table-card">
-    <div class="section-header">
-      <div class="section-label">Impresoras del departamento</div>
-      ${canEdit?`<button class="btn btn-accent btn-sm" onclick="openAddPrinter()">
+const statusLabel = s => s==='good'?'Bueno/a':s==='review'?'Necesita revisión':'Malo/a';
+
+function renderPTab(dept) {
+  return `<div class="tbl-card">
+    <div class="tbl-header">
+      <div class="tbl-label">Impresoras</div>
+      <button class="btn btn-accent btn-sm" onclick="openAddP()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Agregar
-      </button>`:''}
+      </button>
     </div>
     ${dept.printers.length ? `
-    <div class="table-wrap"><table>
-      <thead><tr><th>#</th><th>Nombre</th><th>Modelo</th><th>Estado</th>${canEdit?'<th>Acciones</th>':''}</tr></thead>
-      <tbody>
-        ${dept.printers.map((p,i)=>`<tr>
-          <td class="td-num">${i+1}</td>
-          <td><strong>${p.name}</strong></td>
-          <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${p.model}</td>
-          <td>
-            <span class="status status-${p.status}">${statusLabel(p.status)}</span>
-            ${p.status==='review'&&p.review?`<div class="review-note">↳ ${p.review}</div>`:''}
-          </td>
-          ${canEdit?`<td><div class="td-actions">
-            <button class="btn btn-outline btn-sm" onclick="openEditPrinter('${p.id}')">✏ Editar</button>
-            <button class="btn btn-danger btn-sm" onclick="deletePrinter('${p.id}')">🗑</button>
-          </div></td>`:''}
-        </tr>`).join('')}
-      </tbody>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Nombre</th><th>Modelo</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${dept.printers.map((p,i) => `<tr>
+        <td class="td-num">${i+1}</td>
+        <td><strong>${p.name}</strong></td>
+        <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${p.model}</td>
+        <td>
+          <span class="status status-${p.status}">${statusLabel(p.status)}</span>
+          ${p.status==='review'&&p.review?`<div class="review-note">↳ ${p.review}</div>`:''}
+        </td>
+        <td><div class="td-actions">
+          <button class="btn btn-outline btn-sm" onclick="openEditP('${p.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteP('${p.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H5L4 6"/></svg>
+          </button>
+        </div></td>
+      </tr>`).join('')}</tbody>
     </table></div>` : `<div class="no-data">// Sin impresoras registradas</div>`}
   </div>`;
 }
 
-function renderPCsTab(dept, canEdit) {
+function renderPCTab(dept) {
   const typeLabel = t => t==='aio'?'All-in-One':t==='laptop'?'Notebook':'PC Genérico';
-  return `<div class="table-card">
-    <div class="section-header">
-      <div class="section-label">Equipos del departamento</div>
-      ${canEdit?`<button class="btn btn-accent btn-sm" onclick="openAddPC()">
+  const typeCls   = t => t==='aio'?'pc-aio':t==='laptop'?'pc-lap':'pc-gen';
+  return `<div class="tbl-card">
+    <div class="tbl-header">
+      <div class="tbl-label">Equipos</div>
+      <button class="btn btn-accent btn-sm" onclick="openAddPC()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Agregar
-      </button>`:''}
+      </button>
     </div>
     ${dept.pcs.length ? `
-    <div class="table-wrap"><table>
-      <thead><tr><th>#</th><th>Tipo</th><th>Funcionario</th><th>Modelo</th><th>Estado</th>${canEdit?'<th>Acciones</th>':''}</tr></thead>
-      <tbody>
-        ${dept.pcs.map((pc,i)=>`<tr>
-          <td class="td-num">${i+1}</td>
-          <td><span class="pc-type ${pc.type==='aio'?'pc-aio':'pc-generic'}">${typeLabel(pc.type)}</span></td>
-          <td><strong>${pc.user}</strong></td>
-          <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${pc.model||'—'}</td>
-          <td>
-            <span class="status status-${pc.status}">${statusLabel(pc.status)}</span>
-            ${pc.status==='review'&&pc.review?`<div class="review-note">↳ ${pc.review}</div>`:''}
-          </td>
-          ${canEdit?`<td><div class="td-actions">
-            <button class="btn btn-outline btn-sm" onclick="openEditPC('${pc.id}')">✏ Editar</button>
-            <button class="btn btn-danger btn-sm" onclick="deletePC('${pc.id}')">🗑</button>
-          </div></td>`:''}
-        </tr>`).join('')}
-      </tbody>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Tipo</th><th>Funcionario</th><th>Modelo</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${dept.pcs.map((pc,i) => `<tr>
+        <td class="td-num">${i+1}</td>
+        <td><span class="pc-type ${typeCls(pc.type)}">${typeLabel(pc.type)}</span></td>
+        <td><strong>${pc.user}</strong></td>
+        <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${pc.model||'—'}</td>
+        <td>
+          <span class="status status-${pc.status}">${statusLabel(pc.status)}</span>
+          ${pc.status==='review'&&pc.review?`<div class="review-note">↳ ${pc.review}</div>`:''}
+        </td>
+        <td><div class="td-actions">
+          <button class="btn btn-outline btn-sm" onclick="openEditPC('${pc.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePC('${pc.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H5L4 6"/></svg>
+          </button>
+        </div></td>
+      </tr>`).join('')}</tbody>
     </table></div>` : `<div class="no-data">// Sin equipos registrados</div>`}
   </div>`;
 }
 
-function statusLabel(s) { return s==='good'?'Bueno/a':s==='review'?'Necesita revisión':'Malo/a'; }
-
-// ════════════════════════════════════════
+// ═══════════════════════════
 // PRINTER CRUD
-// ════════════════════════════════════════
-function openAddPrinter() {
-  editingPrinter=null;
-  document.getElementById('modalPrinterTitle').textContent='Agregar impresora';
-  document.getElementById('pName').value='';
-  document.getElementById('pModel').value='';
-  document.getElementById('pStatus').value='good';
-  document.getElementById('pReview').value='';
-  document.getElementById('pReviewGroup').style.display='none';
-  document.getElementById('modalPrinter').style.display='flex';
-  setTimeout(()=>document.getElementById('pName').focus(),50);
+// ═══════════════════════════
+function openAddP() {
+  editP = null;
+  document.getElementById('modalPTitle').textContent = 'Agregar impresora';
+  document.getElementById('pName').value = ''; document.getElementById('pModel').value = '';
+  document.getElementById('pStatus').value = 'good'; document.getElementById('pReview').value = '';
+  document.getElementById('pRevGrp').style.display = 'none';
+  document.getElementById('modalPrinter').style.display = 'flex';
+  setTimeout(() => document.getElementById('pName').focus(), 50);
 }
-function openEditPrinter(id) {
-  const dept=state.departments.find(d=>d.id===state.activeDept);
-  const p=dept.printers.find(p=>p.id===id);
-  editingPrinter=id;
-  document.getElementById('modalPrinterTitle').textContent='Editar impresora';
-  document.getElementById('pName').value=p.name;
-  document.getElementById('pModel').value=p.model;
-  document.getElementById('pStatus').value=p.status;
-  document.getElementById('pReview').value=p.review||'';
-  document.getElementById('pReviewGroup').style.display=p.status==='review'?'flex':'none';
-  document.getElementById('modalPrinter').style.display='flex';
+function openEditP(id) {
+  const dept = state.departments.find(d => d.id === activeDept);
+  const p = dept.printers.find(p => p.id === id);
+  editP = id;
+  document.getElementById('modalPTitle').textContent = 'Editar impresora';
+  document.getElementById('pName').value   = p.name;
+  document.getElementById('pModel').value  = p.model;
+  document.getElementById('pStatus').value = p.status;
+  document.getElementById('pReview').value = p.review || '';
+  document.getElementById('pRevGrp').style.display = p.status === 'review' ? 'flex' : 'none';
+  document.getElementById('modalPrinter').style.display = 'flex';
 }
 function savePrinter() {
-  const name=document.getElementById('pName').value.trim();
-  const model=document.getElementById('pModel').value.trim();
-  const status=document.getElementById('pStatus').value;
-  const review=document.getElementById('pReview').value.trim();
-  if(!name||!model){toast('Completa nombre y modelo.','err');return;}
-  const dept=state.departments.find(d=>d.id===state.activeDept);
-  if(editingPrinter){const p=dept.printers.find(p=>p.id===editingPrinter);Object.assign(p,{name,model,status,review});}
-  else dept.printers.push({id:genId(),name,model,status,review});
-  saveState();closeModal('modalPrinter');renderSidebar();renderMain();
+  const name = document.getElementById('pName').value.trim();
+  const model = document.getElementById('pModel').value.trim();
+  const status = document.getElementById('pStatus').value;
+  const review = document.getElementById('pReview').value.trim();
+  if (!name || !model) { toast('Completa nombre y modelo.', 'err'); return; }
+  const dept = state.departments.find(d => d.id === activeDept);
+  if (editP) { const p = dept.printers.find(p => p.id === editP); Object.assign(p, {name,model,status,review}); }
+  else dept.printers.push({ id: genId(), name, model, status, review });
+  saveState(); closeModal('modalPrinter'); renderSidebar(); renderMain();
 }
-function deletePrinter(id) {
-  if(!confirm('¿Eliminar esta impresora?'))return;
-  const dept=state.departments.find(d=>d.id===state.activeDept);
-  dept.printers=dept.printers.filter(p=>p.id!==id);
-  saveState();renderSidebar();renderMain();
+function deleteP(id) {
+  if (!confirm('¿Eliminar esta impresora?')) return;
+  const dept = state.departments.find(d => d.id === activeDept);
+  dept.printers = dept.printers.filter(p => p.id !== id);
+  saveState(); renderSidebar(); renderMain();
+}
+function togRevP() {
+  document.getElementById('pRevGrp').style.display = document.getElementById('pStatus').value === 'review' ? 'flex' : 'none';
+  if (document.getElementById('pStatus').value === 'review') document.getElementById('pRevGrp').style.flexDirection = 'column';
 }
 
-// ════════════════════════════════════════
+// ═══════════════════════════
 // PC CRUD
-// ════════════════════════════════════════
+// ═══════════════════════════
 function openAddPC() {
-  editingPC=null;
-  document.getElementById('modalPCTitle').textContent='Agregar equipo';
-  document.getElementById('pcType').value='generic';
-  document.getElementById('pcUser').value='';
-  document.getElementById('pcModel').value='';
-  document.getElementById('pcStatus').value='good';
-  document.getElementById('pcReview').value='';
-  document.getElementById('pcReviewGroup').style.display='none';
-  document.getElementById('modalPC').style.display='flex';
-  setTimeout(()=>document.getElementById('pcUser').focus(),50);
+  editPC = null;
+  document.getElementById('modalPCTitle').textContent = 'Agregar equipo';
+  document.getElementById('pcType').value = 'generic'; document.getElementById('pcUser').value = '';
+  document.getElementById('pcModel').value = ''; document.getElementById('pcStatus').value = 'good';
+  document.getElementById('pcReview').value = ''; document.getElementById('pcRevGrp').style.display = 'none';
+  document.getElementById('modalPC').style.display = 'flex';
+  setTimeout(() => document.getElementById('pcUser').focus(), 50);
 }
 function openEditPC(id) {
-  const dept=state.departments.find(d=>d.id===state.activeDept);
-  const pc=dept.pcs.find(p=>p.id===id);
-  editingPC=id;
-  document.getElementById('modalPCTitle').textContent='Editar equipo';
-  document.getElementById('pcType').value=pc.type;
-  document.getElementById('pcUser').value=pc.user;
-  document.getElementById('pcModel').value=pc.model||'';
-  document.getElementById('pcStatus').value=pc.status;
-  document.getElementById('pcReview').value=pc.review||'';
-  document.getElementById('pcReviewGroup').style.display=pc.status==='review'?'flex':'none';
-  document.getElementById('modalPC').style.display='flex';
+  const dept = state.departments.find(d => d.id === activeDept);
+  const pc = dept.pcs.find(p => p.id === id);
+  editPC = id;
+  document.getElementById('modalPCTitle').textContent = 'Editar equipo';
+  document.getElementById('pcType').value   = pc.type;
+  document.getElementById('pcUser').value   = pc.user;
+  document.getElementById('pcModel').value  = pc.model || '';
+  document.getElementById('pcStatus').value = pc.status;
+  document.getElementById('pcReview').value = pc.review || '';
+  document.getElementById('pcRevGrp').style.display = pc.status === 'review' ? 'flex' : 'none';
+  document.getElementById('modalPC').style.display = 'flex';
 }
 function savePC() {
-  const type=document.getElementById('pcType').value;
-  const user=document.getElementById('pcUser').value.trim();
-  const model=document.getElementById('pcModel').value.trim();
-  const status=document.getElementById('pcStatus').value;
-  const review=document.getElementById('pcReview').value.trim();
-  if(!user){toast('Ingresa el nombre del funcionario.','err');return;}
-  const dept=state.departments.find(d=>d.id===state.activeDept);
-  if(editingPC){const pc=dept.pcs.find(p=>p.id===editingPC);Object.assign(pc,{type,user,model,status,review});}
-  else dept.pcs.push({id:genId(),type,user,model,status,review});
-  saveState();closeModal('modalPC');renderSidebar();renderMain();
+  const type = document.getElementById('pcType').value;
+  const user = document.getElementById('pcUser').value.trim();
+  const model = document.getElementById('pcModel').value.trim();
+  const status = document.getElementById('pcStatus').value;
+  const review = document.getElementById('pcReview').value.trim();
+  if (!user) { toast('Ingresa el nombre del funcionario.', 'err'); return; }
+  const dept = state.departments.find(d => d.id === activeDept);
+  if (editPC) { const pc = dept.pcs.find(p => p.id === editPC); Object.assign(pc, {type,user,model,status,review}); }
+  else dept.pcs.push({ id: genId(), type, user, model, status, review });
+  saveState(); closeModal('modalPC'); renderSidebar(); renderMain();
 }
 function deletePC(id) {
-  if(!confirm('¿Eliminar este equipo?'))return;
-  const dept=state.departments.find(d=>d.id===state.activeDept);
-  dept.pcs=dept.pcs.filter(p=>p.id!==id);
-  saveState();renderSidebar();renderMain();
+  if (!confirm('¿Eliminar este equipo?')) return;
+  const dept = state.departments.find(d => d.id === activeDept);
+  dept.pcs = dept.pcs.filter(p => p.id !== id);
+  saveState(); renderSidebar(); renderMain();
+}
+function togRevPC() {
+  const grp = document.getElementById('pcRevGrp');
+  grp.style.display = document.getElementById('pcStatus').value === 'review' ? 'flex' : 'none';
+  grp.style.flexDirection = 'column';
 }
 
-// ════════════════════════════════════════
-// UTILS
-// ════════════════════════════════════════
-function toggleReviewField(type) {
-  const sel=document.getElementById(type==='printer'?'pStatus':'pcStatus');
-  const grp=document.getElementById(type==='printer'?'pReviewGroup':'pcReviewGroup');
-  grp.style.display=sel.value==='review'?'flex':'none';
-  if(sel.value==='review') grp.style.flexDirection='column';
-}
-function closeModal(id){document.getElementById(id).style.display='none';}
-
-// CONFIG MODAL
-function openConfig() {
-  document.getElementById('cfgToken').value = githubCfg.token || '';
-  document.getElementById('cfgGistId').value = githubCfg.gistId || '';
-  document.getElementById('cfgStatus').style.display='none';
-  renderUserList();
-  document.getElementById('modalConfig').style.display='flex';
-}
-function switchCfgTab(n) {
-  document.getElementById('cfgPanel1').style.display=n===1?'block':'none';
-  document.getElementById('cfgPanel2').style.display=n===2?'block':'none';
-  document.getElementById('cfgTab1').className='tab'+(n===1?' active':'');
-  document.getElementById('cfgTab2').className='tab'+(n===2?' active':'');
-}
-
-// Close modals on backdrop
-['modalPrinter','modalPC','modalConfig'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(e){
-    if(e.target===this)closeModal(id);
-  });
+// ═══════════════════════════
+// MODAL UTILS
+// ═══════════════════════════
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+['modalPrinter','modalPC','modalInk'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) closeModal(id); });
 });
 
-// ════════════════════════════════════════
+// ═══════════════════════════
 // TOAST
-// ════════════════════════════════════════
+// ═══════════════════════════
 function toast(msg, type='info') {
   const c = document.getElementById('toastContainer');
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.innerHTML = `<div class="toast-dot"></div><span>${msg}</span>`;
   c.appendChild(el);
-  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(8px)'; el.style.transition='all 0.3s'; setTimeout(()=>el.remove(),300); },3000);
+  const dur = type === 'warn' || type === 'err' ? 5000 : 3000;
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateY(8px)'; el.style.transition='all .3s'; setTimeout(()=>el.remove(),300); }, dur);
 }
 
-// ════════════════════════════════════════
-// EXPORT EXCEL — DETALLADO
-// ════════════════════════════════════════
+// ═══════════════════════════
+// EXPORT EXCEL
+// ═══════════════════════════
 function exportExcel() {
   if (!state.departments.length) { toast('No hay datos para exportar.','warn'); return; }
   const wb = XLSX.utils.book_new();
   const fecha = new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
-
-  // ── HOJA RESUMEN ──
-  const summaryData = [
-    ['INVENTARIO TI — COLEGIO'],
-    [`Fecha: ${fecha}`],
-    [],
-    ['RESUMEN POR DEPARTAMENTO'],
-    ['Departamento','Total Impresoras','Total PCs / AIO','Imp. Buenas','Imp. Revisión','Imp. Malas','PCs Buenos','PCs Revisión','PCs Malos']
-  ];
-  state.departments.forEach(d=>{
-    summaryData.push([
-      d.name,
-      d.printers.length,
-      d.pcs.length,
-      d.printers.filter(p=>p.status==='good').length,
-      d.printers.filter(p=>p.status==='review').length,
-      d.printers.filter(p=>p.status==='bad').length,
-      d.pcs.filter(p=>p.status==='good').length,
-      d.pcs.filter(p=>p.status==='review').length,
-      d.pcs.filter(p=>p.status==='bad').length,
-    ]);
-  });
-  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-  wsSummary['!cols']=[{wch:28},{wch:16},{wch:16},{wch:14},{wch:14},{wch:12},{wch:12},{wch:14},{wch:12}];
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
-
-  // ── HOJA IMPRESORAS (todas) ──
-  const allPrinters = [['Departamento','N°','Nombre Impresora','Modelo','Estado','Observación']];
-  state.departments.forEach(d=>{
-    d.printers.forEach((p,i)=>{
-      allPrinters.push([d.name, i+1, p.name, p.model, statusLabel(p.status), p.status==='review'?p.review:'']);
-    });
-  });
-  if (allPrinters.length > 1) {
-    const wsP = XLSX.utils.aoa_to_sheet(allPrinters);
-    wsP['!cols']=[{wch:24},{wch:4},{wch:36},{wch:28},{wch:18},{wch:40}];
-    XLSX.utils.book_append_sheet(wb, wsP, 'Impresoras');
-  }
-
-  // ── HOJA PCs (todas) ──
-  const allPCs = [['Departamento','N°','Tipo','Funcionario','Modelo Equipo','Estado','Observación']];
   const typeLabel = t => t==='aio'?'All-in-One':t==='laptop'?'Notebook':'PC Genérico';
-  state.departments.forEach(d=>{
-    d.pcs.forEach((pc,i)=>{
-      allPCs.push([d.name, i+1, typeLabel(pc.type), pc.user, pc.model||'', statusLabel(pc.status), pc.status==='review'?pc.review:'']);
-    });
-  });
-  if (allPCs.length > 1) {
-    const wsPC = XLSX.utils.aoa_to_sheet(allPCs);
-    wsPC['!cols']=[{wch:24},{wch:4},{wch:14},{wch:28},{wch:28},{wch:18},{wch:40}];
-    XLSX.utils.book_append_sheet(wb, wsPC, 'PCs y AIO');
-  }
 
-  // ── HOJA POR DEPARTAMENTO ──
-  state.departments.forEach(d=>{
-    const sheetName = d.name.slice(0,28).replace(/[:\\\/\?\*\[\]]/g,'');
-    const rows = [];
-    rows.push([`DEPARTAMENTO: ${d.name}`]);
-    rows.push([`Fecha: ${fecha}`]);
-    rows.push([]);
-    
-    rows.push(['── IMPRESORAS ──']);
-    rows.push(['N°','Nombre Impresora','Modelo','Estado','Observación']);
-    if(d.printers.length) d.printers.forEach((p,i)=>rows.push([i+1,p.name,p.model,statusLabel(p.status),p.status==='review'?p.review:'']));
-    else rows.push(['','Sin impresoras registradas','','','']);
-    rows.push([]);
-    
-    rows.push(['── PCs Y EQUIPOS ──']);
-    rows.push(['N°','Tipo','Funcionario','Modelo Equipo','Estado','Observación']);
-    if(d.pcs.length) d.pcs.forEach((pc,i)=>rows.push([i+1,typeLabel(pc.type),pc.user,pc.model||'',statusLabel(pc.status),pc.status==='review'?pc.review:'']));
-    else rows.push(['','','Sin equipos registrados','','','']);
+  const summary = [['INVENTARIO TI'],['Fecha: '+fecha],[],
+    ['Departamento','Impresoras','PCs/AIO','Imp. Malas','Imp. Revisión','PCs Malos']];
+  state.departments.forEach(d => summary.push([d.name,d.printers.length,d.pcs.length,
+    d.printers.filter(p=>p.status==='bad').length, d.printers.filter(p=>p.status==='review').length,
+    d.pcs.filter(p=>p.status==='bad').length]));
+  const ws1 = XLSX.utils.aoa_to_sheet(summary);
+  ws1['!cols'] = [{wch:26},{wch:13},{wch:13},{wch:13},{wch:13},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:4},{wch:28},{wch:28},{wch:26},{wch:18},{wch:40}];
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  });
+  const allP = [['Departamento','#','Nombre','Modelo','Estado','Observación']];
+  state.departments.forEach(d => d.printers.forEach((p,i) => allP.push([d.name,i+1,p.name,p.model,statusLabel(p.status),p.review||''])));
+  if (allP.length > 1) { const ws2 = XLSX.utils.aoa_to_sheet(allP); ws2['!cols']=[{wch:22},{wch:4},{wch:34},{wch:26},{wch:18},{wch:40}]; XLSX.utils.book_append_sheet(wb, ws2, 'Impresoras'); }
+
+  const allPC = [['Departamento','#','Tipo','Funcionario','Modelo','Estado','Observación']];
+  state.departments.forEach(d => d.pcs.forEach((pc,i) => allPC.push([d.name,i+1,typeLabel(pc.type),pc.user,pc.model||'',statusLabel(pc.status),pc.review||''])));
+  if (allPC.length > 1) { const ws3 = XLSX.utils.aoa_to_sheet(allPC); ws3['!cols']=[{wch:22},{wch:4},{wch:13},{wch:26},{wch:26},{wch:18},{wch:40}]; XLSX.utils.book_append_sheet(wb, ws3, 'PCs y AIO'); }
 
   XLSX.writeFile(wb, `Inventario_TI_${new Date().toISOString().slice(0,10)}.xlsx`);
-  toast('Excel exportado correctamente.','ok');
+  toast('Excel exportado.','ok');
 }
 
-// ════════════════════════════════════════
-// EXPORT WORD (HTML)
-// ════════════════════════════════════════
+function exportInkExcel() {
+  if (!inkState.items.length) { toast('No hay datos de tintas.','warn'); return; }
+  const rows = [['#','Marca','Modelo','Tipo','Color','Cantidad','Mínimo','Compatibles']];
+  inkState.items.forEach((item,i) => rows.push([i+1,item.brand||'',item.model||'',inkTypeLabel(item.type),item.color||'',item.qty||0,item.minQty||0,item.compat||'']));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:4},{wch:12},{wch:14},{wch:14},{wch:12},{wch:10},{wch:8},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Tintas');
+  XLSX.writeFile(wb, `Inventario_Tintas_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel tintas exportado.','ok');
+}
+
 function exportWord() {
-  if (!state.departments.length) { toast('No hay datos para exportar.','warn'); return; }
+  if (!state.departments.length) { toast('No hay datos.','warn'); return; }
   const fecha = new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
   const typeLabel = t => t==='aio'?'All-in-One':t==='laptop'?'Notebook':'PC Genérico';
-
-  let html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-  <title>Inventario TI — Colegio</title>
-  <style>
-    body{font-family:Calibri,Arial,sans-serif;margin:40px;color:#1a1a1a;font-size:11pt}
-    h1{font-size:18pt;color:#0a1628;border-bottom:2px solid #00d4ff;padding-bottom:8px;margin-bottom:6px}
-    h2{font-size:13pt;color:#112240;margin:24px 0 10px;padding:6px 12px;background:#f0f9ff;border-left:4px solid #00d4ff}
-    h3{font-size:11pt;color:#475569;margin:14px 0 6px}
-    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10pt}
-    th{background:#112240;color:white;padding:7px 10px;text-align:left;font-weight:bold;font-size:9.5pt}
-    td{padding:6px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top}
-    tr:nth-child(even) td{background:#f8fafc}
-    .good{color:#065f46;font-weight:bold}.review{color:#78350f;font-weight:bold}.bad{color:#7f1d1d;font-weight:bold}
-    .footer{margin-top:32px;font-size:9pt;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}
-  </style></head><body>
-  <h1>📋 Inventario de Equipos Tecnológicos</h1>
-  <p>Fecha: <strong>${fecha}</strong> &nbsp;|&nbsp; Departamentos: <strong>${state.departments.length}</strong></p>`;
-
-  state.departments.forEach(d=>{
-    html+=`<h2>🏫 ${d.name}</h2>`;
-    html+=`<h3>🖨️ Impresoras (${d.printers.length})</h3>`;
-    if(d.printers.length){
-      html+=`<table><tr><th>#</th><th>Nombre</th><th>Modelo</th><th>Estado</th><th>Observación</th></tr>`;
-      d.printers.forEach((p,i)=>{
-        const cls=p.status==='good'?'good':p.status==='review'?'review':'bad';
-        html+=`<tr><td>${i+1}</td><td>${p.name}</td><td>${p.model}</td><td class="${cls}">${statusLabel(p.status)}</td><td>${p.status==='review'?p.review:''}</td></tr>`;
-      });
-      html+=`</table>`;
-    } else html+=`<p style="color:#94a3b8;font-style:italic">Sin impresoras.</p>`;
-
-    html+=`<h3>🖥️ PCs y Equipos (${d.pcs.length})</h3>`;
-    if(d.pcs.length){
-      html+=`<table><tr><th>#</th><th>Tipo</th><th>Funcionario</th><th>Modelo Equipo</th><th>Estado</th><th>Observación</th></tr>`;
-      d.pcs.forEach((pc,i)=>{
-        const cls=pc.status==='good'?'good':pc.status==='review'?'review':'bad';
-        html+=`<tr><td>${i+1}</td><td>${typeLabel(pc.type)}</td><td>${pc.user}</td><td>${pc.model||'—'}</td><td class="${cls}">${statusLabel(pc.status)}</td><td>${pc.status==='review'?pc.review:''}</td></tr>`;
-      });
-      html+=`</table>`;
-    } else html+=`<p style="color:#94a3b8;font-style:italic">Sin equipos.</p>`;
+  let html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Inventario TI</title>
+  <style>body{font-family:Calibri,Arial,sans-serif;margin:40px;color:#1a1a1a;font-size:11pt}
+  h1{font-size:17pt;color:#08101e;border-bottom:2px solid #3b9eff;padding-bottom:8px;margin-bottom:6px}
+  h2{font-size:13pt;color:#0d1a2e;margin:22px 0 9px;padding:5px 11px;background:#f0f7ff;border-left:4px solid #3b9eff}
+  h3{font-size:11pt;color:#475569;margin:13px 0 5px}
+  table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10pt}
+  th{background:#0d1a2e;color:white;padding:6px 9px;text-align:left;font-size:9pt}
+  td{padding:5px 9px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  tr:nth-child(even) td{background:#f8fafc}
+  .good{color:#065f46;font-weight:bold}.review{color:#78350f;font-weight:bold}.bad{color:#7f1d1d;font-weight:bold}
+  .footer{margin-top:30px;font-size:9pt;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:7px}</style></head><body>
+  <h1>Inventario de Equipos — ${fecha}</h1>`;
+  state.departments.forEach(d => {
+    html += `<h2>${d.name}</h2><h3>Impresoras (${d.printers.length})</h3>`;
+    if (d.printers.length) {
+      html += `<table><tr><th>#</th><th>Nombre</th><th>Modelo</th><th>Estado</th><th>Obs.</th></tr>`;
+      d.printers.forEach((p,i) => { const cls=p.status==='good'?'good':p.status==='review'?'review':'bad'; html += `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.model}</td><td class="${cls}">${statusLabel(p.status)}</td><td>${p.review||''}</td></tr>`; });
+      html += `</table>`;
+    } else html += `<p style="color:#94a3b8;font-style:italic">Sin impresoras.</p>`;
+    html += `<h3>PCs y Equipos (${d.pcs.length})</h3>`;
+    if (d.pcs.length) {
+      html += `<table><tr><th>#</th><th>Tipo</th><th>Funcionario</th><th>Modelo</th><th>Estado</th><th>Obs.</th></tr>`;
+      d.pcs.forEach((pc,i) => { const cls=pc.status==='good'?'good':pc.status==='review'?'review':'bad'; html += `<tr><td>${i+1}</td><td>${typeLabel(pc.type)}</td><td>${pc.user}</td><td>${pc.model||'—'}</td><td class="${cls}">${statusLabel(pc.status)}</td><td>${pc.review||''}</td></tr>`; });
+      html += `</table>`;
+    } else html += `<p style="color:#94a3b8;font-style:italic">Sin equipos.</p>`;
   });
-
-  html+=`<div class="footer">Inventario TI Colegio · ${fecha}</div></body></html>`;
-  const blob=new Blob([html],{type:'application/msword;charset=utf-8'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`Inventario_TI_${new Date().toISOString().slice(0,10)}.doc`;
-  a.click();
-  toast('Word exportado correctamente.','ok');
+  html += `<div class="footer">Inventario TI · ${fecha}</div></body></html>`;
+  const blob = new Blob([html], {type:'application/msword;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Inventario_TI_${new Date().toISOString().slice(0,10)}.doc`; a.click();
+  toast('Word exportado.','ok');
 }
 
-// ════════════════════════════════════════
-// EXPORT PDF
-// ════════════════════════════════════════
 function exportPDF() {
-  if(!state.departments.length){toast('No hay datos para exportar.','warn');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  if (!state.departments.length) { toast('No hay datos.','warn'); return; }
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const fecha = new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
   const typeLabel = t => t==='aio'?'All-in-One':t==='laptop'?'Notebook':'PC Genérico';
-  let y=14;
-
-  doc.setFontSize(16);doc.setTextColor(10,22,40);
-  doc.text('Inventario de Equipos Tecnológicos',14,y);y+=7;
-  doc.setFontSize(9);doc.setTextColor(100,116,139);
-  doc.text(`Fecha: ${fecha}  |  Departamentos: ${state.departments.length}  |  Generado con Inventario TI Colegio`,14,y);y+=8;
-
-  // Resumen
-  doc.autoTable({
-    startY:y,
-    head:[['Departamento','Impresoras','PCs/AIO','Imp. Malas','Imp. Rev.','PCs Malos']],
-    body:state.departments.map(d=>[
-      d.name,d.printers.length,d.pcs.length,
-      d.printers.filter(p=>p.status==='bad').length,
-      d.printers.filter(p=>p.status==='review').length,
-      d.pcs.filter(p=>p.status==='bad').length
-    ]),
-    styles:{fontSize:8.5,cellPadding:2.5},
-    headStyles:{fillColor:[10,22,40],textColor:255,fontStyle:'bold'},
-    alternateRowStyles:{fillColor:[248,250,252]},
-    margin:{left:14,right:14}
-  });
-  y=doc.lastAutoTable.finalY+10;
-
-  state.departments.forEach(d=>{
-    if(y>170){doc.addPage();y=14;}
-    doc.setFontSize(12);doc.setTextColor(10,22,40);
-    doc.text(d.name,14,y);y+=6;
-
-    // Impresoras
-    doc.setFontSize(9);doc.setTextColor(100,116,139);
-    doc.text(`Impresoras (${d.printers.length})`,14,y);y+=3;
+  let y = 14;
+  doc.setFontSize(15); doc.setTextColor(8,16,30);
+  doc.text('Inventario TI', 14, y); y += 6;
+  doc.setFontSize(8); doc.setTextColor(100,116,139);
+  doc.text(`Fecha: ${fecha}`, 14, y); y += 8;
+  doc.autoTable({ startY:y, head:[['Departamento','Impresoras','PCs/AIO','Imp. Malas','Imp. Rev.','PCs Malos']],
+    body: state.departments.map(d=>[d.name,d.printers.length,d.pcs.length,
+      d.printers.filter(p=>p.status==='bad').length, d.printers.filter(p=>p.status==='review').length,
+      d.pcs.filter(p=>p.status==='bad').length]),
+    styles:{fontSize:8,cellPadding:2.5}, headStyles:{fillColor:[8,16,30],textColor:255},
+    alternateRowStyles:{fillColor:[248,250,252]}, margin:{left:14,right:14} });
+  y = doc.lastAutoTable.finalY + 10;
+  state.departments.forEach(d => {
+    if(y > 170){doc.addPage();y=14;}
+    doc.setFontSize(11); doc.setTextColor(8,16,30); doc.text(d.name,14,y); y+=5;
+    doc.setFontSize(8); doc.setTextColor(100,116,139); doc.text(`Impresoras (${d.printers.length})`,14,y); y+=3;
     if(d.printers.length){
-      doc.autoTable({
-        startY:y,
-        head:[['#','Nombre Impresora','Modelo','Estado','Observación']],
-        body:d.printers.map((p,i)=>[i+1,p.name,p.model,statusLabel(p.status),p.status==='review'?p.review:'']),
-        styles:{fontSize:8,cellPadding:2},
-        headStyles:{fillColor:[0,180,210],textColor:255},
-        alternateRowStyles:{fillColor:[248,250,252]},
-        columnStyles:{0:{cellWidth:7},1:{cellWidth:55},2:{cellWidth:48},3:{cellWidth:26},4:{cellWidth:65}},
-        margin:{left:14,right:14}
-      });
-      y=doc.lastAutoTable.finalY+5;
-    } else {doc.setFontSize(8);doc.setTextColor(148,163,184);doc.text('Sin impresoras.',18,y+4);y+=9;}
-
+      doc.autoTable({ startY:y, head:[['#','Nombre','Modelo','Estado','Observación']],
+        body:d.printers.map((p,i)=>[i+1,p.name,p.model,statusLabel(p.status),p.review||'']),
+        styles:{fontSize:7.5,cellPadding:2}, headStyles:{fillColor:[0,150,200],textColor:255},
+        alternateRowStyles:{fillColor:[248,250,252]}, columnStyles:{0:{cellWidth:8},1:{cellWidth:55},2:{cellWidth:48},3:{cellWidth:26},4:{cellWidth:65}}, margin:{left:14,right:14} });
+      y = doc.lastAutoTable.finalY + 5;
+    } else { doc.setFontSize(7.5); doc.setTextColor(148,163,184); doc.text('Sin impresoras.',18,y+4); y+=9; }
     if(y>165){doc.addPage();y=14;}
-    doc.setFontSize(9);doc.setTextColor(100,116,139);
-    doc.text(`PCs y Equipos (${d.pcs.length})`,14,y+2);y+=5;
+    doc.setFontSize(8); doc.setTextColor(100,116,139); doc.text(`PCs y Equipos (${d.pcs.length})`,14,y+2); y+=5;
     if(d.pcs.length){
-      doc.autoTable({
-        startY:y,
-        head:[['#','Tipo','Funcionario','Modelo Equipo','Estado','Observación']],
-        body:d.pcs.map((pc,i)=>[i+1,typeLabel(pc.type),pc.user,pc.model||'—',statusLabel(pc.status),pc.status==='review'?pc.review:'']),
-        styles:{fontSize:8,cellPadding:2},
-        headStyles:{fillColor:[10,22,40],textColor:255},
-        alternateRowStyles:{fillColor:[248,250,252]},
-        columnStyles:{0:{cellWidth:7},1:{cellWidth:24},2:{cellWidth:46},3:{cellWidth:40},4:{cellWidth:24},4:{cellWidth:60}},
-        margin:{left:14,right:14}
-      });
-      y=doc.lastAutoTable.finalY+10;
-    } else {doc.setFontSize(8);doc.setTextColor(148,163,184);doc.text('Sin equipos.',18,y+4);y+=10;}
+      doc.autoTable({ startY:y, head:[['#','Tipo','Funcionario','Modelo','Estado','Obs.']],
+        body:d.pcs.map((pc,i)=>[i+1,typeLabel(pc.type),pc.user,pc.model||'—',statusLabel(pc.status),pc.review||'']),
+        styles:{fontSize:7.5,cellPadding:2}, headStyles:{fillColor:[8,16,30],textColor:255},
+        alternateRowStyles:{fillColor:[248,250,252]}, columnStyles:{0:{cellWidth:8},1:{cellWidth:24},2:{cellWidth:46},3:{cellWidth:40},4:{cellWidth:24},5:{cellWidth:55}}, margin:{left:14,right:14} });
+      y = doc.lastAutoTable.finalY + 10;
+    } else { doc.setFontSize(7.5); doc.setTextColor(148,163,184); doc.text('Sin equipos.',18,y+4); y+=10; }
   });
-
-  const total=doc.internal.getNumberOfPages();
+  const total = doc.internal.getNumberOfPages();
   for(let i=1;i<=total;i++){
-    doc.setPage(i);
-    doc.setFontSize(7.5);doc.setTextColor(148,163,184);
-    doc.text(`Inventario TI Colegio · ${fecha} · Pág. ${i} de ${total}`,14,doc.internal.pageSize.height-7);
+    doc.setPage(i); doc.setFontSize(7); doc.setTextColor(148,163,184);
+    doc.text(`Inventario TI · ${fecha} · Pág. ${i} de ${total}`,14,doc.internal.pageSize.height-7);
   }
   doc.save(`Inventario_TI_${new Date().toISOString().slice(0,10)}.pdf`);
-  toast('PDF exportado correctamente.','ok');
+  toast('PDF exportado.','ok');
 }
 
-// ════════════════════════════════════════
+// ═══════════════════════════
 // START
-// ════════════════════════════════════════
+// ═══════════════════════════
 init();
 </script>
 </body>
