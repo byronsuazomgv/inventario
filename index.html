@@ -59,6 +59,52 @@
   --sans:     'Space Grotesk', sans-serif;
 }
 
+/* LIGHT THEME */
+[data-theme="light"] {
+  --bg:       #f0f4fa;
+  --bg2:      #e4ecf7;
+  --card:     #ffffff;
+  --card2:    #f8faff;
+  --border:   rgba(0,0,0,0.08);
+  --border2:  rgba(0,0,0,0.13);
+  --accent:   #1a7fe0;
+  --accent2:  #2563eb;
+  --accentbg: rgba(26,127,224,0.08);
+  --accentbr: rgba(26,127,224,0.22);
+  --green:    #059669;
+  --greenbg:  rgba(5,150,105,0.08);
+  --greenbr:  rgba(5,150,105,0.22);
+  --yellow:   #d97706;
+  --yellowbg: rgba(217,119,6,0.08);
+  --yellowbr: rgba(217,119,6,0.25);
+  --red:      #dc2626;
+  --redbg:    rgba(220,38,38,0.07);
+  --redbr:    rgba(220,38,38,0.2);
+  --orange:   #ea580c;
+  --text:     #1e293b;
+  --text2:    #475569;
+  --text3:    #94a3b8;
+}
+
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%,rgba(26,127,224,0.06) 0%,transparent 70%),
+    radial-gradient(ellipse 30% 40% at 95% 80%,rgba(5,150,105,0.04) 0%,transparent 60%);
+}
+
+[data-theme="light"] .header {
+  background: rgba(240,244,250,0.94);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+
+[data-theme="light"] th { background: rgba(0,0,0,0.04); }
+[data-theme="light"] tr:hover td { background: rgba(26,127,224,0.03); }
+[data-theme="light"] .card::before { background: linear-gradient(90deg,transparent,rgba(26,127,224,0.15),transparent); }
+[data-theme="light"] select option { background: #fff; color: #1e293b; }
+
+* { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease; }
+input, select, textarea, button { transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.1s ease; }
+
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;background:
@@ -305,6 +351,41 @@ textarea{resize:vertical;min-height:60px}
 
 /* CONFIG TABS */
 .cfg-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px}
+
+/* SETTINGS MODAL */
+.settings-modal{max-width:480px}
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.theme-card{border:2px solid var(--border2);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;position:relative;background:transparent}
+.theme-card:hover{border-color:var(--accentbr);background:var(--accentbg)}
+.theme-card.selected{border-color:var(--accent);background:var(--accentbg)}
+.theme-card.selected::after{content:'✓';position:absolute;top:10px;right:12px;color:var(--accent);font-weight:700;font-size:14px;font-family:var(--mono)}
+.theme-preview{border-radius:8px;height:62px;margin-bottom:10px;overflow:hidden;position:relative;border:1px solid rgba(0,0,0,0.1)}
+.theme-preview-dark{background:linear-gradient(135deg,#08101e 0%,#0d1a2e 50%,#111f35 100%)}
+.theme-preview-light{background:linear-gradient(135deg,#f0f4fa 0%,#e4ecf7 50%,#ffffff 100%)}
+.theme-preview-bar{position:absolute;top:0;left:0;right:0;height:14px;display:flex;align-items:center;padding:0 8px;gap:4px}
+.theme-preview-bar-dark{background:rgba(8,16,30,0.9);border-bottom:1px solid rgba(255,255,255,0.07)}
+.theme-preview-bar-light{background:rgba(240,244,250,0.9);border-bottom:1px solid rgba(0,0,0,0.08)}
+.theme-preview-dot{width:5px;height:5px;border-radius:50%}
+.theme-preview-lines{position:absolute;bottom:8px;left:8px;right:8px;display:flex;flex-direction:column;gap:4px}
+.theme-preview-line{height:4px;border-radius:2px}
+.theme-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.theme-desc{font-size:11px;color:var(--text2)}
+
+/* Responsive improvements */
+@media(max-width:600px){
+  .header-inner{padding:0 14px;gap:8px}
+  .brand-user{display:none}
+  .sync-dot-wrap span{display:none}
+  .header-right{gap:5px}
+  .btn-logout span{display:none}
+  .ink-layout{padding:14px}
+  .layout{padding:14px;gap:12px}
+  .export-grid{grid-template-columns:repeat(2,1fr)}
+  .theme-grid{grid-template-columns:1fr 1fr}
+  .modal{padding:16px}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid .full{grid-column:1}
+}
 </style>
 </head>
 <body>
@@ -389,6 +470,9 @@ textarea{resize:vertical;min-height:60px}
       </button>
       <button class="btn btn-ghost btn-sm" onclick="exportExcel()">Excel</button>
       <button class="btn btn-ghost btn-sm" onclick="exportPDF()">PDF</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSettings()" title="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="btn btn-logout btn-sm" onclick="doLogout()">⏻ Salir</button>
     </div>
   </div>
@@ -561,7 +645,12 @@ textarea{resize:vertical;min-height:60px}
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="exportInkExcel()">Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportInkExcel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Excel
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="exportInkPDF()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>PDF
+        </button>
         <button class="btn btn-accent btn-sm" onclick="openAddInk()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Agregar tinta
@@ -622,6 +711,62 @@ textarea{resize:vertical;min-height:60px}
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CONFIGURACIONES ══ -->
+<div id="modalSettings" class="modal-backdrop" style="display:none">
+  <div class="modal settings-modal">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configuración
+    </div>
+
+    <div style="margin-bottom:18px">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px">// Tema de la interfaz</div>
+      <div class="theme-grid">
+        <div class="theme-card" id="themeCardDark" onclick="setTheme('dark')">
+          <div class="theme-preview theme-preview-dark">
+            <div class="theme-preview-bar theme-preview-bar-dark">
+              <div class="theme-preview-dot" style="background:#3b9eff"></div>
+              <div class="theme-preview-dot" style="background:#22d3a0"></div>
+              <div class="theme-preview-dot" style="background:#f43f5e"></div>
+            </div>
+            <div class="theme-preview-lines">
+              <div class="theme-preview-line" style="background:rgba(59,158,255,0.4);width:70%"></div>
+              <div class="theme-preview-line" style="background:rgba(255,255,255,0.1);width:90%"></div>
+              <div class="theme-preview-line" style="background:rgba(255,255,255,0.07);width:55%"></div>
+            </div>
+          </div>
+          <div class="theme-name">Oscuro</div>
+          <div class="theme-desc">Fondo oscuro — ideal para trabajo nocturno</div>
+        </div>
+        <div class="theme-card" id="themeCardLight" onclick="setTheme('light')">
+          <div class="theme-preview theme-preview-light">
+            <div class="theme-preview-bar theme-preview-bar-light">
+              <div class="theme-preview-dot" style="background:#1a7fe0"></div>
+              <div class="theme-preview-dot" style="background:#059669"></div>
+              <div class="theme-preview-dot" style="background:#dc2626"></div>
+            </div>
+            <div class="theme-preview-lines">
+              <div class="theme-preview-line" style="background:rgba(26,127,224,0.35);width:70%"></div>
+              <div class="theme-preview-line" style="background:rgba(0,0,0,0.1);width:90%"></div>
+              <div class="theme-preview-line" style="background:rgba(0,0,0,0.06);width:55%"></div>
+            </div>
+          </div>
+          <div class="theme-name">Claro</div>
+          <div class="theme-desc">Fondo blanco — ideal para espacios con luz</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--accentbg);border:1px solid var(--accentbr);border-radius:9px;padding:11px 14px;font-size:11px;color:var(--text2);font-family:var(--mono)">
+      La preferencia de tema se guarda automáticamente en este navegador.
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-accent" onclick="closeModal('modalSettings')">Listo</button>
     </div>
   </div>
 </div>
@@ -1303,7 +1448,7 @@ function togRevPC() {
 // MODAL UTILS
 // ═══════════════════════════
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-['modalPrinter','modalPC','modalInk'].forEach(id => {
+['modalPrinter','modalPC','modalInk','modalSettings'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) closeModal(id); });
 });
 
@@ -1444,6 +1589,193 @@ function exportPDF() {
   }
   doc.save(`Inventario_TI_${new Date().toISOString().slice(0,10)}.pdf`);
   toast('PDF exportado.','ok');
+}
+
+// ═══════════════════════════
+// THEME / SETTINGS
+// ═══════════════════════════
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('inv_theme', theme);
+  document.getElementById('themeCardDark').classList.toggle('selected', theme === 'dark');
+  document.getElementById('themeCardLight').classList.toggle('selected', theme === 'light');
+}
+
+function openSettings() {
+  const current = localStorage.getItem('inv_theme') || 'dark';
+  document.getElementById('themeCardDark').classList.toggle('selected', current === 'dark');
+  document.getElementById('themeCardLight').classList.toggle('selected', current === 'light');
+  document.getElementById('modalSettings').style.display = 'flex';
+}
+
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem('inv_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+
+// ═══════════════════════════
+// EXPORT PDF — TINTAS
+// ═══════════════════════════
+function exportInkPDF() {
+  if (!inkState.items.length) { toast('No hay tintas para exportar.', 'warn'); return; }
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const fecha = new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  const pageW = doc.internal.pageSize.width;
+  const pageH = doc.internal.pageSize.height;
+  const marginL = 16, marginR = 16;
+
+  // ── HEADER BAND ──
+  doc.setFillColor(11, 25, 56);
+  doc.rect(0, 0, pageW, 36, 'F');
+  // Accent line
+  doc.setFillColor(59, 158, 255);
+  doc.rect(0, 36, pageW, 1.5, 'F');
+
+  // Logo icon area
+  doc.setFillColor(59, 158, 255, 0.15);
+  doc.setDrawColor(59, 158, 255);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(marginL, 8, 20, 20, 3, 3, 'FD');
+  doc.setTextColor(59, 158, 255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('INK', marginL + 10, 21, {align:'center'});
+
+  // Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('INVENTARIO DE TINTAS', marginL + 26, 17);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.setTextColor(180, 200, 230);
+  doc.text('Tóners · Tintas · Cartuchos · Tambores', marginL + 26, 24);
+
+  // Date right
+  doc.setTextColor(140, 170, 210);
+  doc.setFontSize(8);
+  doc.text(fecha, pageW - marginR, 17, {align:'right'});
+
+  let y = 46;
+
+  // ── STATS SUMMARY ──
+  const items       = inkState.items;
+  const totalUnits  = items.reduce((s,i) => s+(i.qty||0), 0);
+  const low         = items.filter(i => (i.qty||0) <= (i.minQty||0) && (i.qty||0) > 0).length;
+  const zero        = items.filter(i => (i.qty||0) === 0).length;
+  const ok          = items.filter(i => (i.qty||0) > (i.minQty||0)).length;
+
+  const stats = [
+    { label:'Referencias', val: items.length, color:[59,158,255] },
+    { label:'Unidades',    val: totalUnits,    color:[59,158,255] },
+    { label:'Stock OK',    val: ok,            color:[34,197,94] },
+    { label:'Stock bajo',  val: low,           color:[245,158,11] },
+    { label:'Agotadas',    val: zero,          color:[244,63,94] },
+  ];
+  const boxW = (pageW - marginL - marginR - 8) / stats.length;
+  stats.forEach((s, i) => {
+    const x = marginL + i * (boxW + 2);
+    doc.setFillColor(245, 248, 255);
+    doc.setDrawColor(220, 230, 245);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, y, boxW, 18, 2, 2, 'FD');
+    doc.setFillColor(...s.color);
+    doc.rect(x, y, 3, 18, 'F');
+    doc.setTextColor(...s.color);
+    doc.setFontSize(13); doc.setFont('helvetica','bold');
+    doc.text(String(s.val), x + boxW/2 + 1.5, y + 9, {align:'center'});
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text(s.label, x + boxW/2 + 1.5, y + 14.5, {align:'center'});
+  });
+  y += 24;
+
+  // ── STOCK ALERTS (if any) ──
+  const critItems = items.filter(i => (i.qty||0) <= (i.minQty||0));
+  if (critItems.length) {
+    doc.setFillColor(255, 243, 243);
+    doc.setDrawColor(244, 63, 94);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(marginL, y, pageW - marginL - marginR, 8 + critItems.length * 5.5, 2, 2, 'FD');
+    doc.setFillColor(244, 63, 94);
+    doc.rect(marginL, y, 3, 8 + critItems.length * 5.5, 'F');
+    doc.setTextColor(185, 28, 28);
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text('⚠  STOCK BAJO — Solicitar compra urgente', marginL + 7, y + 6);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    critItems.forEach((item, i) => {
+      const qty = item.qty || 0;
+      const tag = qty === 0 ? 'AGOTADA' : `${qty} uds.`;
+      doc.setTextColor(220, 38, 38); doc.setFont('helvetica','bold');
+      doc.text(tag, marginL + 9, y + 11 + i * 5.5);
+      doc.setTextColor(100, 116, 139); doc.setFont('helvetica','normal');
+      doc.text(`${item.brand} ${item.model}${item.color ? ' (' + item.color + ')' : ''}`, marginL + 26, y + 11 + i * 5.5);
+    });
+    y += 14 + critItems.length * 5.5;
+  }
+
+  // ── SECTION TITLE ──
+  doc.setFillColor(11, 25, 56);
+  doc.rect(marginL, y, pageW - marginL - marginR, 8, 'F');
+  doc.setTextColor(140, 180, 255);
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.text('// REGISTRO COMPLETO DE TINTAS', marginL + 5, y + 5.5);
+  y += 12;
+
+  // ── MAIN TABLE ──
+  const rows = items.map((item, i) => {
+    const qty = item.qty || 0;
+    const min = item.minQty || 0;
+    const stock = qty === 0 ? 'AGOTADA' : qty <= min ? `${qty} ⚠` : String(qty);
+    return [i+1, item.brand||'—', item.model||'—', inkTypeLabel(item.type), item.color||'—', stock, min, item.compat||'—'];
+  });
+
+  doc.autoTable({
+    startY: y,
+    head: [['#','Marca','Modelo / Código','Tipo','Color','Cant.','Mín.','Compatibles']],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 3, font: 'helvetica', textColor: [30,41,59], lineColor:[220,230,245], lineWidth:0.2 },
+    headStyles: { fillColor: [11,25,56], textColor: [140,180,255], fontStyle:'bold', fontSize:7.5, cellPadding:3.5 },
+    alternateRowStyles: { fillColor: [248, 250, 255] },
+    columnStyles: {
+      0: { cellWidth: 8,  halign:'center', textColor:[150,163,180] },
+      1: { cellWidth: 22, fontStyle:'bold' },
+      2: { cellWidth: 30, font:'courier', fontSize:7.5 },
+      3: { cellWidth: 22 },
+      4: { cellWidth: 18 },
+      5: { cellWidth: 14, halign:'center', fontStyle:'bold' },
+      6: { cellWidth: 12, halign:'center', textColor:[150,163,180] },
+      7: { cellWidth: 'auto', textColor:[100,116,139], fontSize:7 }
+    },
+    margin: {left: marginL, right: marginR},
+    didParseCell: function(data) {
+      if (data.column.index === 5 && data.section === 'body') {
+        const v = String(data.cell.raw);
+        if (v === 'AGOTADA')   { data.cell.styles.textColor = [220,38,38]; data.cell.styles.fillColor = [255,240,240]; }
+        else if (v.includes('⚠')) { data.cell.styles.textColor = [180,100,0]; data.cell.styles.fillColor = [255,248,230]; }
+        else { data.cell.styles.textColor = [22,163,74]; }
+      }
+    }
+  });
+
+  // ── FOOTER on every page ──
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFillColor(245, 248, 255);
+    doc.rect(0, pageH - 10, pageW, 10, 'F');
+    doc.setDrawColor(210, 225, 245);
+    doc.setLineWidth(0.3);
+    doc.line(0, pageH - 10, pageW, pageH - 10);
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.setTextColor(150, 163, 180);
+    doc.text(`Inventario TI — Tintas  ·  ${fecha}`, marginL, pageH - 4);
+    doc.text(`Pág. ${p} de ${totalPages}`, pageW - marginR, pageH - 4, {align:'right'});
+    doc.setTextColor(100, 130, 180);
+    doc.text('Sistema de Gestión de Inventario', pageW / 2, pageH - 4, {align:'center'});
+  }
+
+  doc.save(`Inventario_Tintas_${new Date().toISOString().slice(0,10)}.pdf`);
+  toast('PDF de tintas exportado.', 'ok');
 }
 
 // ═══════════════════════════
