@@ -4,6 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inventario TI — Colegio</title>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser as fbDeleteUser, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ════════════════════════════════════════
+  // FIREBASE CONFIG — reemplaza con tu proyecto
+  // ════════════════════════════════════════
+  const firebaseConfig = window._firebaseConfig || {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  if (!firebaseConfig.apiKey) {
+    window._firebaseNotConfigured = true;
+  } else {
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // Expose to global scope for use in non-module scripts
+    window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+      createUserWithEmailAndPassword, fbDeleteUser, updatePassword,
+      doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp };
+  }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
@@ -246,6 +277,42 @@ textarea{resize:vertical;min-height:65px}
 .toast-err .toast-dot{background:var(--red)}
 .toast-info .toast-dot{background:var(--accent)}
 .toast-warn .toast-dot{background:var(--yellow)}
+
+/* ── INK INVENTORY ── */
+#inkScreen{display:none;position:fixed;inset:0;background:var(--navy);z-index:90;overflow-y:auto}
+#inkScreen.visible{display:block}
+.ink-layout{max-width:1160px;margin:0 auto;padding:24px;position:relative;z-index:1}
+.ink-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.ink-topbar-left{display:flex;align-items:center;gap:12px}
+.ink-topbar-icon{width:38px;height:38px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.ink-topbar-icon svg{width:20px;height:20px;color:var(--yellow)}
+.ink-topbar-title{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--yellow)}
+.ink-topbar-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.ink-stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:700px){.ink-stats-bar{grid-template-columns:repeat(2,1fr)}}
+.ink-stat{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative;overflow:hidden}
+.ink-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,0.2),transparent)}
+.ink-stat-val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--text)}
+.ink-stat-lbl{font-size:11px;color:var(--text2);margin-top:4px}
+.ink-content{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.ink-toolbar{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ink-search{flex:1;min-width:180px;padding:8px 12px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text)}
+.ink-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
+.ink-search::placeholder{color:var(--text3)}
+.ink-filter{padding:8px 12px;background:var(--navy);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);color:var(--text);cursor:pointer}
+.ink-filter:focus{outline:none;border-color:var(--accent)}
+.ink-type-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-family:var(--mono);font-weight:500;white-space:nowrap}
+.ink-toner{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25)}
+.ink-liquid{background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid var(--accent-border)}
+.ink-cartridge{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,0.25)}
+.ink-drum{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,0.25)}
+.ink-qty{font-family:var(--mono);font-size:13px;font-weight:600}
+.ink-qty-low{color:var(--red)}
+.ink-qty-mid{color:var(--yellow)}
+.ink-qty-ok{color:var(--green)}
+.qty-controls{display:flex;align-items:center;gap:6px}
+.qty-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all 0.15s}
+.qty-btn:hover{background:var(--border);border-color:var(--accent-border)}
 </style>
 </head>
 <body>
@@ -311,6 +378,10 @@ textarea{resize:vertical;min-height:65px}
         <div class="sync-dot sync-dot-yellow" id="syncDot"></div>
         <span id="syncLabel">Sin conexión</span>
       </div>
+      <button class="btn btn-ghost" onclick="toggleInkScreen()" title="Inventario de Tintas" id="btnInkToggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><polyline points="14 2 14 8 20 8"/><path d="M2 15s.5-1 2-1 2 1 4 1 2-1 2-1"/></svg>
+        Tintas
+      </button>
       <button class="btn btn-ghost" onclick="exportExcel()" title="Exportar Excel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         Excel
@@ -470,30 +541,35 @@ textarea{resize:vertical;min-height:65px}
     
     <!-- TABS CONFIG -->
     <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
-      <button class="tab active" id="cfgTab1" onclick="switchCfgTab(1)" style="font-size:12px;padding:8px 14px">🔗 GitHub Sync</button>
+      <button class="tab active" id="cfgTab1" onclick="switchCfgTab(1)" style="font-size:12px;padding:8px 14px">🔥 Firebase</button>
       <button class="tab" id="cfgTab2" onclick="switchCfgTab(2)" style="font-size:12px;padding:8px 14px">👤 Usuarios</button>
     </div>
 
-    <!-- TAB 1: GITHUB -->
+    <!-- TAB 1: FIREBASE CONFIG -->
     <div id="cfgPanel1">
-      <div class="config-field">
-        <label>Token de acceso personal (GitHub)</label>
-        <input type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-        <div class="config-hint">Genera tu token en <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> con permiso <code>gist</code>.</div>
+      <div id="fbNotConfigured" style="display:none;background:var(--yellow-bg);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--yellow);margin-bottom:8px">⚠ Firebase no configurado</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">
+          Para conectar esta app con Firebase, debes pegar tu configuración del proyecto a continuación. La app funcionará sin conexión mientras no esté configurada.
+        </div>
       </div>
+      <div id="fbConfigured" style="display:none;background:var(--green-bg);border:1px solid rgba(0,229,160,0.3);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);margin-bottom:4px">✅ Firebase conectado</div>
+        <div style="font-size:12px;color:var(--text2)" id="fbProjectId">Proyecto: —</div>
+      </div>
+
       <div class="config-field">
-        <label>Gist ID (dejar vacío para crear uno nuevo)</label>
-        <input type="text" id="cfgGistId" placeholder="Se completará automáticamente">
-        <div class="config-hint">Si ya tienes un Gist existente, pega el ID aquí. Si no, déjalo vacío y se creará uno nuevo al guardar.</div>
+        <label>Firebase Config (JSON)</label>
+        <textarea id="cfgFirebaseJson" rows="8" placeholder='Pega aquí el objeto firebaseConfig de tu proyecto:&#10;{&#10;  "apiKey": "AIza...",&#10;  "authDomain": "tu-proyecto.firebaseapp.com",&#10;  "projectId": "tu-proyecto",&#10;  "storageBucket": "tu-proyecto.appspot.com",&#10;  "messagingSenderId": "1234567890",&#10;  "appId": "1:123:web:abc"&#10;}' style="font-family:var(--mono);font-size:12px;min-height:160px"></textarea>
+        <div class="config-hint">
+          Obtén este objeto en <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Tu proyecto → ⚙ Configuración → Tus apps → SDK de Firebase.<br><br>
+          Debes habilitar <strong>Authentication (Email/Password)</strong> y <strong>Firestore</strong> en el proyecto.
+        </div>
       </div>
       <div id="cfgStatus" class="config-status"></div>
       <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-        <button class="btn btn-accent" onclick="saveGithubConfig()" style="flex:1">Guardar y conectar</button>
-        <button class="btn btn-ghost" onclick="manualSync()" style="flex:1">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="syncBtnIcon"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          Sincronizar ahora
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="clearGithubConfig()" title="Desconectar GitHub">Desconectar</button>
+        <button class="btn btn-accent" onclick="saveFirebaseConfig()" style="flex:1">Guardar configuración</button>
+        <button class="btn btn-danger btn-sm" onclick="clearFirebaseConfig()">Limpiar</button>
       </div>
     </div>
 
@@ -533,56 +609,259 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
+<!-- ══════════ MODAL TINTA ══════════ -->
+<div id="modalInk" class="modal-backdrop" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><polyline points="14 2 14 8 20 8"/><path d="M2 15s.5-1 2-1 2 1 4 1 2-1 2-1"/></svg>
+      <span id="modalInkTitle">Agregar tinta / tóner</span>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Marca</label>
+        <input type="text" id="inkBrand" placeholder="Ej: HP, Epson, Canon">
+      </div>
+      <div class="form-group">
+        <label>Modelo / Referencia</label>
+        <input type="text" id="inkModel" placeholder="Ej: 664, CF217A, TN-2370">
+      </div>
+      <div class="form-group full">
+        <label>Tipo</label>
+        <select id="inkType">
+          <option value="toner">🟣 Tóner</option>
+          <option value="liquid">🔵 Tinta líquida</option>
+          <option value="cartridge">🟢 Cartucho</option>
+          <option value="drum">🟡 Tambor / Drum</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Color / Descripción</label>
+        <input type="text" id="inkColor" placeholder="Ej: Negro, Cian, Magenta, Amarillo, Color, Tricolor">
+      </div>
+      <div class="form-group">
+        <label>Cantidad en stock</label>
+        <input type="number" id="inkQty" placeholder="0" min="0" value="1">
+      </div>
+      <div class="form-group">
+        <label>Stock mínimo (alerta)</label>
+        <input type="number" id="inkMinQty" placeholder="2" min="0" value="2">
+      </div>
+      <div class="form-group full">
+        <label>Impresoras compatibles (opcional)</label>
+        <input type="text" id="inkCompat" placeholder="Ej: HP LaserJet M404, HP M428">
+      </div>
+      <div class="form-group full">
+        <label>Observaciones</label>
+        <textarea id="inkNotes" placeholder="Notas adicionales…" style="min-height:55px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalInk')">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveInk()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ INK INVENTORY SCREEN ══════════ -->
+<div id="inkScreen">
+  <div class="ink-layout">
+    <div class="ink-topbar">
+      <div class="ink-topbar-left">
+        <div class="ink-topbar-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><polyline points="14 2 14 8 20 8"/><path d="M2 15s.5-1 2-1 2 1 4 1 2-1 2-1"/></svg>
+        </div>
+        <div>
+          <div class="ink-topbar-title">INVENTARIO DE TINTAS</div>
+          <div class="ink-topbar-sub">Gestión de tóners, tintas, cartuchos y tambores</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost" onclick="exportInkExcel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Excel
+        </button>
+        <button class="btn btn-accent" id="btnAddInk" onclick="openAddInk()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar tinta
+        </button>
+        <button class="btn btn-ghost" onclick="toggleInkScreen()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cerrar
+        </button>
+      </div>
+    </div>
+
+    <div class="ink-stats-bar" id="inkStatsBar"></div>
+
+    <div class="ink-content">
+      <div class="ink-toolbar">
+        <input class="ink-search" type="text" id="inkSearchInput" placeholder="Buscar por marca, modelo, tipo…" oninput="renderInkTable()">
+        <select class="ink-filter" id="inkFilterType" onchange="renderInkTable()">
+          <option value="">Todos los tipos</option>
+          <option value="toner">Tóner</option>
+          <option value="liquid">Tinta líquida</option>
+          <option value="cartridge">Cartucho</option>
+          <option value="drum">Tambor</option>
+        </select>
+        <select class="ink-filter" id="inkFilterStock" onchange="renderInkTable()">
+          <option value="">Todo el stock</option>
+          <option value="low">Stock bajo / agotado</option>
+          <option value="ok">Stock OK</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="td-num">#</th>
+              <th>Marca</th>
+              <th>Modelo</th>
+              <th>Tipo</th>
+              <th>Color</th>
+              <th>Compatibles</th>
+              <th>Cantidad</th>
+              <th>Mín.</th>
+              <th>Observaciones</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="inkTableBody">
+            <tr><td colspan="10" class="no-data">// Sin registros</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════
 // CONSTANTS
 // ════════════════════════════════════════
-const USERS_KEY     = 'inventario_ti_v3_users';
-const SESSION_KEY   = 'inventario_ti_v3_session';
-
-// Claves dinámicas por usuario — se generan en runtime
-function userStorageKey(uid)  { return `inventario_ti_v3_data__${uid}`; }
-function userGithubKey(uid)   { return `inventario_ti_v3_github__${uid}`; }
-function userPendingKey(uid)  { return `inventario_ti_v3_pending__${uid}`; }
-
-// Identificador canónico del usuario (RUT normalizado, o email si no tiene RUT)
-function getUserId(user) {
-  if (!user) return null;
-  return user.rut ? normalizeRut(user.rut) : (user.email || '').toLowerCase().trim();
-}
+const FB_CONFIG_KEY = 'inventario_ti_v4_fbconfig';
+const SESSION_KEY   = 'inventario_ti_v3_session'; // kept for fallback
 
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
 let state        = { departments: [], activeDept: null };
+let inkState     = { items: [] };
 let activeTab    = 'printers';
 let editingPrinter = null, editingPC = null;
-let currentUser  = null;
-let githubCfg    = { token: '', gistId: '' };
+let editingInk   = null;
+let inkScreenOpen = false;
+let currentUser  = null;   // { uid, email, role, rut }
 let isSyncing    = false;
+let _unsubSnapshot = null; // Firestore real-time listener unsubscribe
+let _unsubInkSnapshot = null;
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// ════════════════════════════════════════
+// FIREBASE HELPERS
+// ════════════════════════════════════════
+function fb() { return window._fb || null; }
+function firebaseReady() { return !!window._fb && !window._firebaseNotConfigured; }
+
+// Convert RUT-based identifier to a valid Firebase email
+function rutToEmail(rut) {
+  const clean = (rut||'').replace(/[^0-9kK]/gi,'').toLowerCase();
+  return `rut_${clean}@inventario.local`;
+}
+function isRutEmail(email) { return (email||'').startsWith('rut_') && email.endsWith('@inventario.local'); }
+function emailToRut(email) { return isRutEmail(email) ? email.replace('rut_','').replace('@inventario.local','') : null; }
 
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
 function init() {
-  loadUsers();
-  checkSession();
-  monitorOnline();
+  // Wait for Firebase module to load (it's async type="module")
+  let tries = 0;
+  const waitForFb = () => {
+    tries++;
+    if (window._fb) {
+      initWithFirebase();
+    } else if (window._firebaseNotConfigured) {
+      initWithoutFirebase();
+    } else if (tries < 30) {
+      setTimeout(waitForFb, 100);
+    } else {
+      initWithoutFirebase();
+    }
+  };
+  setTimeout(waitForFb, 150);
 }
 
-function checkSession() {
-  const sess = sessionStorage.getItem(SESSION_KEY);
-  if (sess) {
+function initWithFirebase() {
+  const { auth, onAuthStateChanged } = fb();
+  onAuthStateChanged(auth, (fbUser) => {
+    if (fbUser) {
+      loadUserProfile(fbUser).then(() => {
+        showApp();
+      });
+    } else {
+      currentUser = null;
+      if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
+      showLogin();
+    }
+  });
+}
+
+function initWithoutFirebase() {
+  // Check if there's a stored Firebase config to load
+  const stored = localStorage.getItem(FB_CONFIG_KEY);
+  if (stored) {
     try {
-      currentUser = JSON.parse(sess);
-      showApp();
-    } catch(e) { showLogin(); }
-  } else {
+      const cfg = JSON.parse(stored);
+      if (cfg.apiKey) {
+        applyFirebaseConfig(cfg);
+        return;
+      }
+    } catch(e) {}
+  }
+  // No config — show login with warning
+  showLogin();
+  toast('Firebase no configurado. Ve a ⚙ Configuración para conectarlo.', 'warn');
+}
+
+async function applyFirebaseConfig(cfg) {
+  // Dynamically initialize Firebase with a new config
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser: fbDeleteUser, updatePassword } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+    const app  = initializeApp(cfg, 'dynamic');
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+      createUserWithEmailAndPassword, fbDeleteUser, updatePassword,
+      doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, serverTimestamp };
+    window._firebaseNotConfigured = false;
+    initWithFirebase();
+  } catch(e) {
+    toast('Error al inicializar Firebase: ' + e.message, 'err');
     showLogin();
   }
 }
 
-let loginMode = 'rut'; // 'rut' or 'email'
+async function loadUserProfile(fbUser) {
+  const { db, doc, getDoc } = fb();
+  const snap = await getDoc(doc(db, 'users', fbUser.uid));
+  const profile = snap.exists() ? snap.data() : {};
+  currentUser = {
+    uid:   fbUser.uid,
+    email: fbUser.email,
+    role:  profile.role || 'viewer',
+    rut:   profile.rut  || emailToRut(fbUser.email) || ''
+  };
+}
+
+// ════════════════════════════════════════
+// LOGIN UI
+// ════════════════════════════════════════
+let loginMode = 'rut';
 
 function setLoginMode(mode) {
   loginMode = mode;
@@ -615,181 +894,399 @@ function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appHeader').style.display = 'block';
   document.getElementById('appLayout').style.display = 'grid';
-  loadGithubConfig(); // carga config del usuario actual
-  loadState();
-  renderSidebar();
-  renderMain();
-  checkOnline();
-  // Mostrar usuario en header
-  const uid = currentUser?.email || currentUser?.rut || '';
+  const uid = currentUser?.rut || currentUser?.email || '';
   const headerTitle = document.querySelector('.header-title');
   if (headerTitle) headerTitle.innerHTML = `INVENTARIO TI <span>// ${uid}</span>`;
+  startRealtimeSync();
+  startInkRealtimeSync();
+  updateSyncBadge('syncing');
 }
 
 // ════════════════════════════════════════
-// AUTH
+// AUTH — Firebase
 // ════════════════════════════════════════
-function loadUsers() {
-  const saved = localStorage.getItem(USERS_KEY);
-  if (!saved) {
-    // Default admin user
-    const defaultUsers = [{ rut:'12-3', pass: btoa('admin'), role:'admin' }];
-    localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
-  }
-}
+async function doLogin() {
+  const pass = document.getElementById('loginPass').value;
+  const err  = document.getElementById('loginError');
 
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch(e) { return []; }
-}
-
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-function formatRut(inp) {
-  let raw = inp.value.replace(/[^0-9kK]/g,'').toUpperCase();
-
-  // Permite usar credenciales simples como 12-3
-  if(raw === '123'){
-    inp.value = '12-3';
+  if (!firebaseReady()) {
+    err.textContent = 'Firebase no configurado. Ve a ⚙ Configuración.';
+    err.style.display = 'block';
     return;
   }
 
-  if (raw.length > 1) {
-    const dv = raw.slice(-1);
-    let body = raw.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-    inp.value = body + '-' + dv;
-  } else {
-    inp.value = raw;
-  }
-}
-
-function normalizeRut(v){
-  return (v || '').toString().trim().toLowerCase().replace(/\./g,'');
-}
-
-function doLogin() {
-  const pass  = document.getElementById('loginPass').value;
-  const err   = document.getElementById('loginError');
-  const users = getUsers();
-  let user;
-
+  let email;
   if (loginMode === 'rut') {
-    const rut = normalizeRut(document.getElementById('loginRut').value);
-    user = users.find(u => normalizeRut(u.rut) === rut && atob(u.pass) === pass);
+    const rut = document.getElementById('loginRut').value.trim();
+    email = rutToEmail(rut);
   } else {
-    const email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
-    user = users.find(u => (u.email || '').toLowerCase() === email && atob(u.pass) === pass);
+    email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
   }
 
-  if (user) {
+  if (!email || !pass) { err.textContent = 'Completa todos los campos.'; err.style.display='block'; return; }
+
+  const { auth, signInWithEmailAndPassword } = fb();
+  const btn = document.querySelector('.login-btn');
+  btn.textContent = 'Ingresando…'; btn.disabled = true;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
     err.style.display = 'none';
-    currentUser = { rut: user.rut, email: user.email || '', role: user.role };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-    showApp();
-  } else {
+    // onAuthStateChanged will call showApp()
+  } catch(e) {
+    err.textContent = 'Credenciales incorrectas. Verifica tu RUT/correo y contraseña.';
     err.style.display = 'block';
     document.getElementById('loginPass').value = '';
-    document.getElementById('loginPass').focus();
+  } finally {
+    btn.textContent = 'Ingresar →'; btn.disabled = false;
   }
 }
 
-function doLogout() {
-  sessionStorage.removeItem(SESSION_KEY);
+async function doLogout() {
+  if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
+  if (_unsubInkSnapshot) { _unsubInkSnapshot(); _unsubInkSnapshot = null; }
+  if (firebaseReady()) {
+    const { auth, signOut } = fb();
+    await signOut(auth).catch(()=>{});
+  }
   currentUser = null;
+  state = { departments: [], activeDept: null };
+  inkState = { items: [] };
+  inkScreenOpen = false;
+  document.getElementById('inkScreen').classList.remove('visible');
   document.getElementById('loginRut').value = '';
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPass').value = '';
   showLogin();
 }
 
-// ════════════════════════════════════════
-// DATA — LOCAL (por usuario)
-// ════════════════════════════════════════
-function loadState() {
-  const uid = getUserId(currentUser);
-  try {
-    const saved = uid ? localStorage.getItem(userStorageKey(uid)) : null;
-    if (saved) state = JSON.parse(saved);
-    else state = { departments: [], activeDept: null };
-  } catch(e) { state = { departments: [], activeDept: null }; }
+function formatRut(inp) {
+  let raw = inp.value.replace(/[^0-9kK]/g,'').toUpperCase();
+  if(raw === '123'){ inp.value = '12-3'; return; }
+  if (raw.length > 1) {
+    const dv = raw.slice(-1);
+    let body = raw.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    inp.value = body + '-' + dv;
+  } else { inp.value = raw; }
 }
 
-function saveState() {
-  const uid = getUserId(currentUser);
-  if (!uid) return;
-  localStorage.setItem(userStorageKey(uid), JSON.stringify(state));
-  localStorage.setItem(userPendingKey(uid), '1'); // mark as pending sync
-  autoSync();
-}
-
-function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
-
 // ════════════════════════════════════════
-// GITHUB GIST SYNC
+// FIRESTORE — Real-time sync
 // ════════════════════════════════════════
-function loadGithubConfig() {
-  const uid = getUserId(currentUser);
-  if (!uid) return;
-  try {
-    const saved = localStorage.getItem(userGithubKey(uid));
-    githubCfg = saved ? JSON.parse(saved) : { token: '', gistId: '' };
-    // Pre-cargar token por defecto si no hay ninguno configurado
-    if (!githubCfg.token) {
-      githubCfg.token = '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';
-      saveGithubConfigToStorage();
-    }
-  } catch(e) { githubCfg = { token: '', gistId: '' }; }
-}
+function startRealtimeSync() {
+  if (!firebaseReady() || !currentUser?.uid) return;
+  if (_unsubSnapshot) _unsubSnapshot();
 
-function saveGithubConfigToStorage() {
-  const uid = getUserId(currentUser);
-  if (!uid) return;
-  localStorage.setItem(userGithubKey(uid), JSON.stringify(githubCfg));
-}
+  const { db, doc, onSnapshot } = fb();
+  const docRef = doc(db, 'inventario', currentUser.uid);
 
-async function saveGithubConfig() {
-  const token  = document.getElementById('cfgToken').value.trim();
-  const gistId = document.getElementById('cfgGistId').value.trim();
-  const status = document.getElementById('cfgStatus');
-  if (!token) { showCfgStatus('error','Ingresa un token de GitHub.'); return; }
-
-  githubCfg.token = token;
-  githubCfg.gistId = gistId;
-  saveGithubConfigToStorage();
-  showCfgStatus('info','Conectando…');
-
-  try {
-    if (!githubCfg.gistId) {
-      // Create new Gist with per-user filename
-      const uid = getUserId(currentUser);
-      const filename = uid ? `inventario_ti_${uid.replace(/[^a-z0-9]/g,'_')}.json` : 'inventario_ti_data.json';
-      const res = await fetch('https://api.github.com/gists', {
-        method: 'POST',
-        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: `Inventario TI Colegio — datos de ${uid || 'usuario'}`,
-          public: false,
-          files: { [filename]: { content: JSON.stringify(state, null, 2) } }
-        })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      githubCfg.gistId = data.id;
-      document.getElementById('cfgGistId').value = data.id;
-      saveGithubConfigToStorage();
-      showCfgStatus('ok', `✅ Gist creado: ${data.id.slice(0,8)}…`);
-      if (uid) localStorage.removeItem(userPendingKey(uid));
+  _unsubSnapshot = onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      const remote = snap.data();
+      state.departments = remote.departments || [];
+      // Preserve active dept selection
+      if (state.activeDept && !state.departments.find(d=>d.id===state.activeDept)) {
+        state.activeDept = null;
+      }
     } else {
-      // Test existing Gist
-      await pushToGist();
-      showCfgStatus('ok','✅ Conexión exitosa. Datos sincronizados.');
+      state = { departments: [], activeDept: null };
     }
+    renderSidebar();
+    renderMain();
     updateSyncBadge('online');
-    toast('GitHub conectado correctamente.', 'ok');
-  } catch(err) {
-    showCfgStatus('error', `❌ Error: ${err.message}. Verifica el token y permisos.`);
+  }, (err) => {
+    console.error('Firestore error', err);
+    updateSyncBadge('offline');
+    toast('Error de sincronización: ' + err.message, 'err');
+  });
+}
+
+async function saveState() {
+  if (!firebaseReady() || !currentUser?.uid) return;
+  updateSyncBadge('syncing');
+  const { db, doc, setDoc, serverTimestamp } = fb();
+  try {
+    await setDoc(doc(db, 'inventario', currentUser.uid), {
+      departments: state.departments,
+      updatedAt: serverTimestamp()
+    });
+    // onSnapshot will update badge to 'online'
+  } catch(e) {
+    updateSyncBadge('offline');
+    toast('Error al guardar: ' + e.message, 'err');
   }
+}
+
+// ════════════════════════════════════════
+// INK — Firebase real-time sync
+// ════════════════════════════════════════
+function startInkRealtimeSync() {
+  if (!firebaseReady() || !currentUser?.uid) return;
+  if (_unsubInkSnapshot) _unsubInkSnapshot();
+  const { db, doc, onSnapshot } = fb();
+  const docRef = doc(db, 'tintas', currentUser.uid);
+  _unsubInkSnapshot = onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      inkState.items = snap.data().items || [];
+    } else {
+      inkState.items = [];
+    }
+    if (inkScreenOpen) { renderInkStats(); renderInkTable(); }
+  }, (err) => {
+    console.error('Ink Firestore error', err);
+  });
+}
+
+async function saveInkState() {
+  if (!firebaseReady() || !currentUser?.uid) return;
+  const { db, doc, setDoc, serverTimestamp } = fb();
+  try {
+    await setDoc(doc(db, 'tintas', currentUser.uid), {
+      items: inkState.items,
+      updatedAt: serverTimestamp()
+    });
+  } catch(e) {
+    toast('Error al guardar tintas: ' + e.message, 'err');
+  }
+}
+
+// ════════════════════════════════════════
+// INK SCREEN TOGGLE
+// ════════════════════════════════════════
+function toggleInkScreen() {
+  inkScreenOpen = !inkScreenOpen;
+  const screen = document.getElementById('inkScreen');
+  const appLayout = document.getElementById('appLayout');
+  const appHeader = document.getElementById('appHeader');
+  if (inkScreenOpen) {
+    screen.classList.add('visible');
+    appLayout.style.display = 'none';
+    appHeader.style.display = 'none';
+    screen.style.paddingTop = '0';
+    renderInkStats();
+    renderInkTable();
+  } else {
+    screen.classList.remove('visible');
+    appLayout.style.display = 'grid';
+    appHeader.style.display = 'block';
+  }
+}
+
+// ════════════════════════════════════════
+// INK CRUD
+// ════════════════════════════════════════
+function openAddInk() {
+  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
+  editingInk = null;
+  document.getElementById('modalInkTitle').textContent = 'Agregar tinta / tóner';
+  document.getElementById('inkBrand').value = '';
+  document.getElementById('inkModel').value = '';
+  document.getElementById('inkType').value = 'toner';
+  document.getElementById('inkColor').value = '';
+  document.getElementById('inkQty').value = '1';
+  document.getElementById('inkMinQty').value = '2';
+  document.getElementById('inkCompat').value = '';
+  document.getElementById('inkNotes').value = '';
+  document.getElementById('modalInk').style.display = 'flex';
+  setTimeout(()=>document.getElementById('inkBrand').focus(), 50);
+}
+
+function openEditInk(id) {
+  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
+  const item = inkState.items.find(i=>i.id===id);
+  if (!item) return;
+  editingInk = id;
+  document.getElementById('modalInkTitle').textContent = 'Editar tinta / tóner';
+  document.getElementById('inkBrand').value = item.brand || '';
+  document.getElementById('inkModel').value = item.model || '';
+  document.getElementById('inkType').value = item.type || 'toner';
+  document.getElementById('inkColor').value = item.color || '';
+  document.getElementById('inkQty').value = item.qty ?? 0;
+  document.getElementById('inkMinQty').value = item.minQty ?? 2;
+  document.getElementById('inkCompat').value = item.compat || '';
+  document.getElementById('inkNotes').value = item.notes || '';
+  document.getElementById('modalInk').style.display = 'flex';
+  setTimeout(()=>document.getElementById('inkBrand').focus(), 50);
+}
+
+function saveInk() {
+  const brand = document.getElementById('inkBrand').value.trim();
+  const model = document.getElementById('inkModel').value.trim();
+  const type  = document.getElementById('inkType').value;
+  const color = document.getElementById('inkColor').value.trim();
+  const qty   = parseInt(document.getElementById('inkQty').value) || 0;
+  const minQty= parseInt(document.getElementById('inkMinQty').value) || 0;
+  const compat= document.getElementById('inkCompat').value.trim();
+  const notes = document.getElementById('inkNotes').value.trim();
+
+  if (!brand || !model) { toast('Marca y modelo son obligatorios.','warn'); return; }
+
+  if (editingInk) {
+    const idx = inkState.items.findIndex(i=>i.id===editingInk);
+    if (idx >= 0) inkState.items[idx] = { ...inkState.items[idx], brand, model, type, color, qty, minQty, compat, notes };
+    toast('Tinta actualizada.','ok');
+  } else {
+    inkState.items.push({ id: genId(), brand, model, type, color, qty, minQty, compat, notes, createdAt: new Date().toISOString() });
+    toast('Tinta agregada.','ok');
+  }
+  saveInkState();
+  closeModal('modalInk');
+  renderInkStats();
+  renderInkTable();
+}
+
+function deleteInk(id) {
+  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
+  if (!confirm('¿Eliminar este registro?')) return;
+  inkState.items = inkState.items.filter(i=>i.id!==id);
+  saveInkState();
+  renderInkStats();
+  renderInkTable();
+  toast('Registro eliminado.','info');
+}
+
+function adjustQty(id, delta) {
+  if (currentUser?.role === 'viewer') { toast('Solo lectura.','warn'); return; }
+  const item = inkState.items.find(i=>i.id===id);
+  if (!item) return;
+  item.qty = Math.max(0, (item.qty || 0) + delta);
+  saveInkState();
+  renderInkStats();
+  renderInkTable();
+}
+
+// ════════════════════════════════════════
+// INK RENDER
+// ════════════════════════════════════════
+function inkTypeLabel(t) {
+  return t==='toner'?'Tóner':t==='liquid'?'Tinta líquida':t==='cartridge'?'Cartucho':t==='drum'?'Tambor':'—';
+}
+function inkTypeClass(t) {
+  return t==='toner'?'ink-toner':t==='liquid'?'ink-liquid':t==='cartridge'?'ink-cartridge':t==='drum'?'ink-drum':'';
+}
+
+function renderInkStats() {
+  const el = document.getElementById('inkStatsBar');
+  if (!el) return;
+  const items = inkState.items;
+  const total = items.length;
+  const low   = items.filter(i=>(i.qty||0) <= (i.minQty||0)).length;
+  const zero  = items.filter(i=>(i.qty||0) === 0).length;
+  const totalUnits = items.reduce((s,i)=>s+(i.qty||0),0);
+  el.innerHTML = `
+    <div class="ink-stat"><div class="ink-stat-val">${total}</div><div class="ink-stat-lbl">Referencias</div></div>
+    <div class="ink-stat"><div class="ink-stat-val">${totalUnits}</div><div class="ink-stat-lbl">Unidades totales</div></div>
+    <div class="ink-stat"><div class="ink-stat-val" style="color:var(--yellow)">${low}</div><div class="ink-stat-lbl">Stock bajo / mínimo</div></div>
+    <div class="ink-stat"><div class="ink-stat-val" style="color:var(--red)">${zero}</div><div class="ink-stat-lbl">Agotadas</div></div>`;
+}
+
+function renderInkTable() {
+  const tbody = document.getElementById('inkTableBody');
+  if (!tbody) return;
+  const search  = (document.getElementById('inkSearchInput')?.value || '').toLowerCase();
+  const fType   = document.getElementById('inkFilterType')?.value || '';
+  const fStock  = document.getElementById('inkFilterStock')?.value || '';
+  const canEdit = currentUser?.role !== 'viewer';
+
+  let items = inkState.items.filter(i => {
+    const q = `${i.brand} ${i.model} ${i.color} ${i.compat} ${inkTypeLabel(i.type)}`.toLowerCase();
+    if (search && !q.includes(search)) return false;
+    if (fType && i.type !== fType) return false;
+    if (fStock === 'low' && (i.qty||0) > (i.minQty||0)) return false;
+    if (fStock === 'ok'  && (i.qty||0) <= (i.minQty||0)) return false;
+    return true;
+  });
+
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="no-data">// Sin resultados</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map((item, idx) => {
+    const qty = item.qty || 0;
+    const min = item.minQty || 0;
+    const qtyClass = qty === 0 ? 'ink-qty-low' : qty <= min ? 'ink-qty-mid' : 'ink-qty-ok';
+    return `<tr>
+      <td class="td-num">${idx+1}</td>
+      <td style="font-weight:500">${item.brand||'—'}</td>
+      <td style="font-family:var(--mono);font-size:12px">${item.model||'—'}</td>
+      <td><span class="ink-type-badge ${inkTypeClass(item.type)}">${inkTypeLabel(item.type)}</span></td>
+      <td style="font-size:12px">${item.color||'—'}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.compat||''}">${item.compat||'—'}</td>
+      <td>
+        <div class="qty-controls">
+          ${canEdit?`<button class="qty-btn" onclick="adjustQty('${item.id}',-1)" title="Restar">−</button>`:''}
+          <span class="ink-qty ${qtyClass}">${qty}</span>
+          ${canEdit?`<button class="qty-btn" onclick="adjustQty('${item.id}',1)" title="Sumar">+</button>`:''}
+        </div>
+      </td>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${min}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.notes||''}">${item.notes||'—'}</td>
+      <td>
+        <div class="td-actions">
+          ${canEdit?`<button class="btn btn-ghost btn-sm" onclick="openEditInk('${item.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteInk('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// EXPORT INK EXCEL
+// ════════════════════════════════════════
+function exportInkExcel() {
+  if (!inkState.items.length) { toast('No hay datos para exportar.','warn'); return; }
+  const rows = [['#','Marca','Modelo','Tipo','Color','Cantidad','Mínimo','Compatibles','Observaciones']];
+  inkState.items.forEach((item,i)=>{
+    rows.push([i+1, item.brand||'', item.model||'', inkTypeLabel(item.type), item.color||'', item.qty||0, item.minQty||0, item.compat||'', item.notes||'']);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:4},{wch:14},{wch:16},{wch:14},{wch:14},{wch:10},{wch:8},{wch:30},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Tintas');
+  XLSX.writeFile(wb, `Inventario_Tintas_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel de tintas exportado.','ok');
+}
+
+// ════════════════════════════════════════
+// FIREBASE CONFIG (modal tab 1)
+// ════════════════════════════════════════
+async function saveFirebaseConfig() {
+  const raw = document.getElementById('cfgFirebaseJson').value.trim();
+  if (!raw) { showCfgStatus('error','Pega tu configuración de Firebase.'); return; }
+  let cfg;
+  try {
+    // Allow both object literal style and JSON
+    cfg = JSON.parse(raw);
+  } catch(e) {
+    showCfgStatus('error', 'JSON inválido. Verifica el formato.');
+    return;
+  }
+  if (!cfg.apiKey || !cfg.projectId) {
+    showCfgStatus('error', 'Configuración incompleta. Falta apiKey o projectId.');
+    return;
+  }
+  localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+  showCfgStatus('ok', '⏳ Conectando con Firebase…');
+  await applyFirebaseConfig(cfg);
+  showCfgStatus('ok', `✅ Firebase conectado: ${cfg.projectId}`);
+  document.getElementById('fbProjectId').textContent = `Proyecto: ${cfg.projectId}`;
+  document.getElementById('fbConfigured').style.display = 'block';
+  document.getElementById('fbNotConfigured').style.display = 'none';
+  toast('Firebase conectado correctamente.', 'ok');
+}
+
+function clearFirebaseConfig() {
+  if (!confirm('¿Limpiar configuración de Firebase? Deberás volver a configurarlo.')) return;
+  localStorage.removeItem(FB_CONFIG_KEY);
+  document.getElementById('cfgFirebaseJson').value = '';
+  document.getElementById('cfgStatus').style.display = 'none';
+  document.getElementById('fbConfigured').style.display = 'none';
+  document.getElementById('fbNotConfigured').style.display = 'block';
+  toast('Configuración limpiada.', 'info');
 }
 
 function showCfgStatus(type, msg) {
@@ -799,133 +1296,16 @@ function showCfgStatus(type, msg) {
   el.style.display = 'block';
 }
 
-async function pushToGist() {
-  if (!githubCfg.token || !githubCfg.gistId) return;
-  const uid = getUserId(currentUser);
-  const filename = uid ? `inventario_ti_${uid.replace(/[^a-z0-9]/g,'_')}.json` : 'inventario_ti_data.json';
-  const res = await fetch(`https://api.github.com/gists/${githubCfg.gistId}`, {
-    method: 'PATCH',
-    headers: { Authorization: `token ${githubCfg.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ files: { [filename]: { content: JSON.stringify(state, null, 2) } } })
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-}
-
-async function pullFromGist() {
-  if (!githubCfg.token || !githubCfg.gistId) return false;
-  const uid = getUserId(currentUser);
-  const filename = uid ? `inventario_ti_${uid.replace(/[^a-z0-9]/g,'_')}.json` : 'inventario_ti_data.json';
-  const res = await fetch(`https://api.github.com/gists/${githubCfg.gistId}`, {
-    headers: { Authorization: `token ${githubCfg.token}` }
-  });
-  if (!res.ok) return false;
-  const data = await res.json();
-  // Buscar archivo por nombre exacto del usuario
-  const fileContent = data.files?.[filename]?.content || data.files?.['inventario_ti_data.json']?.content;
-  if (!fileContent) return false;
-  const remote = JSON.parse(fileContent);
-  // Merge: remote wins for existing depts, local adds new ones
-  const remoteDepts = remote.departments || [];
-  const localDepts  = state.departments || [];
-  const remoteIds = new Set(remoteDepts.map(d=>d.id));
-  const localOnly = localDepts.filter(d=>!remoteIds.has(d.id));
-  state.departments = [...remoteDepts, ...localOnly];
-  if (uid) localStorage.setItem(userStorageKey(uid), JSON.stringify(state));
-  return true;
-}
-
-let syncDebounce = null;
-async function autoSync() {
-  if (!navigator.onLine || !githubCfg.token || !githubCfg.gistId) return;
-  clearTimeout(syncDebounce);
-  syncDebounce = setTimeout(async () => {
-    await doSync();
-  }, 2000);
-}
-
-async function manualSync() {
-  const icon = document.getElementById('syncBtnIcon');
-  if (icon) icon.classList.add('spin');
-  await doSync(true);
-  if (icon) icon.classList.remove('spin');
-}
-
-async function doSync(verbose=false) {
-  const uid = getUserId(currentUser);
-  if (isSyncing || !githubCfg.token || !githubCfg.gistId) {
-    if (verbose) toast('Configura GitHub primero.', 'warn');
-    return;
-  }
-  if (!navigator.onLine) {
-    if (verbose) toast('Sin conexión. Los cambios se guardan localmente.', 'warn');
-    return;
-  }
-  isSyncing = true;
-  updateSyncBadge('syncing');
-  try {
-    await pushToGist();
-    if (uid) localStorage.removeItem(userPendingKey(uid));
-    updateSyncBadge('online');
-    if (verbose) toast('Sincronizado con GitHub ✓', 'ok');
-  } catch(err) {
-    updateSyncBadge('offline');
-    if (verbose) toast(`Error al sincronizar: ${err.message}`, 'err');
-  } finally {
-    isSyncing = false;
-  }
-}
-
-async function clearGithubConfig() {
-  if (!confirm('¿Desconectar GitHub? Los datos locales se mantendrán.')) return;
-  githubCfg = { token: '', gistId: '' };
-  saveGithubConfigToStorage();
-  document.getElementById('cfgToken').value = '';
-  document.getElementById('cfgGistId').value = '';
-  document.getElementById('cfgStatus').style.display = 'none';
-  updateSyncBadge('offline');
-  toast('GitHub desconectado.', 'info');
-}
-
 // ════════════════════════════════════════
 // ONLINE/OFFLINE MONITOR
 // ════════════════════════════════════════
 function monitorOnline() {
-  window.addEventListener('online', async () => {
-    const uid = getUserId(currentUser);
-    updateSyncBadge('syncing');
-    toast('Conexión restaurada. Sincronizando…', 'info');
-    if (uid && localStorage.getItem(userPendingKey(uid))) {
-      await doSync();
-    } else {
-      const merged = await pullFromGist();
-      if (merged) {
-        renderSidebar(); renderMain();
-        toast('Datos actualizados desde GitHub.', 'ok');
-      }
-      updateSyncBadge('online');
-    }
-  });
-  window.addEventListener('offline', () => {
-    updateSyncBadge('offline');
-    toast('Sin conexión. Trabajando en modo local.', 'warn');
-  });
+  window.addEventListener('online',  () => { toast('Conexión restaurada.', 'info'); startRealtimeSync(); startInkRealtimeSync(); });
+  window.addEventListener('offline', () => { updateSyncBadge('offline'); toast('Sin conexión. Los cambios se sincronizarán al reconectarte.', 'warn'); });
 }
 
-async function checkOnline() {
-  const uid = getUserId(currentUser);
-  if (navigator.onLine && githubCfg.token && githubCfg.gistId) {
-    updateSyncBadge('syncing');
-    try {
-      const merged = await pullFromGist();
-      if (merged) { renderSidebar(); renderMain(); }
-      if (uid && localStorage.getItem(userPendingKey(uid))) await doSync();
-      updateSyncBadge('online');
-    } catch(e) { updateSyncBadge('offline'); }
-  } else if (!navigator.onLine) {
-    updateSyncBadge('offline');
-  } else {
-    updateSyncBadge('nocfg');
-  }
+function checkOnline() {
+  if (!navigator.onLine) updateSyncBadge('offline');
 }
 
 function updateSyncBadge(status) {
@@ -936,83 +1316,92 @@ function updateSyncBadge(status) {
   badge.className = 'sync-badge';
   dot.className = 'sync-dot';
   if (status === 'online') {
-    badge.classList.add('sync-online');
-    dot.classList.add('sync-dot-green');
-    label.textContent = 'Sincronizado';
+    badge.classList.add('sync-online'); dot.classList.add('sync-dot-green'); label.textContent = 'Firebase sync';
   } else if (status === 'syncing') {
-    badge.classList.add('sync-syncing');
-    dot.classList.add('sync-dot-blue');
-    label.textContent = 'Sincronizando…';
+    badge.classList.add('sync-syncing'); dot.classList.add('sync-dot-blue'); label.textContent = 'Sincronizando…';
   } else if (status === 'nocfg') {
-    badge.classList.add('sync-offline');
-    dot.classList.add('sync-dot-yellow');
-    label.textContent = 'Solo local';
+    badge.classList.add('sync-offline'); dot.classList.add('sync-dot-yellow'); label.textContent = 'Sin Firebase';
   } else {
-    badge.classList.add('sync-offline');
-    dot.classList.add('sync-dot-yellow');
-    label.textContent = 'Sin conexión';
+    badge.classList.add('sync-offline'); dot.classList.add('sync-dot-yellow'); label.textContent = 'Sin conexión';
   }
 }
 
 // ════════════════════════════════════════
-// USER MANAGEMENT
+// USER MANAGEMENT — Firestore + Auth
 // ════════════════════════════════════════
-function renderUserList() {
-  const users = getUsers();
+async function renderUserList() {
   const el = document.getElementById('userList');
-  if (!users.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Sin usuarios.</div>'; return; }
-  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px">
-    <tr>
-      <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3);border-radius:6px 0 0 0">RUT</th>
-      <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Correo</th>
-      <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Rol</th>
-      <th style="background:rgba(0,0,0,0.2);border-radius:0 6px 0 0"></th>
-    </tr>
-    ${users.map(u=>`<tr>
-      <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px">${u.rut}</td>
-      <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2)">${u.email||'<span style="color:var(--text3);font-style:italic">—</span>'}</td>
-      <td style="padding:7px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;padding:2px 8px;border-radius:20px;${u.role==='admin'?'background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)':'background:var(--surface);color:var(--text2);border:1px solid var(--border)'}">${u.role==='admin'?'Admin':'Solo lectura'}</span></td>
-      <td style="padding:7px 8px;border-bottom:1px solid var(--border);text-align:right">
-        ${u.rut!==currentUser?.rut?`<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.rut}')">Eliminar</button>`:'<span style="font-size:11px;color:var(--text3)">Tú</span>'}
-      </td>
-    </tr>`).join('')}
-  </table>`;
+  if (!firebaseReady()) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Firebase no configurado.</div>';
+    return;
+  }
+  el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Cargando usuarios…</div>';
+  const { db, collection, getDocs } = fb();
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    const users = [];
+    snap.forEach(d => users.push({ uid: d.id, ...d.data() }));
+    if (!users.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Sin usuarios registrados.</div>'; return; }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Identificador</th>
+        <th style="text-align:left;padding:6px 8px;background:rgba(0,0,0,0.2);font-family:var(--mono);font-size:10px;color:var(--text3)">Rol</th>
+        <th style="background:rgba(0,0,0,0.2)"></th>
+      </tr>
+      ${users.map(u=>`<tr>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px">${u.rut || u.email || u.uid}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--border)"><span style="font-size:10px;padding:2px 8px;border-radius:20px;${u.role==='admin'?'background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)':'background:var(--surface);color:var(--text2);border:1px solid var(--border)'}">${u.role==='admin'?'Admin':'Solo lectura'}</span></td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--border);text-align:right">
+          ${u.uid!==currentUser?.uid?`<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.uid}')">Eliminar</button>`:'<span style="font-size:11px;color:var(--text3)">Tú</span>'}
+        </td>
+      </tr>`).join('')}
+    </table>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:12px">Error al cargar usuarios: ${e.message}</div>`;
+  }
 }
 
-function addUser() {
+async function addUser() {
+  if (!firebaseReady()) { toast('Firebase no configurado.', 'err'); return; }
+  if (currentUser?.role !== 'admin') { toast('Solo administradores pueden crear usuarios.', 'warn'); return; }
   const rut   = document.getElementById('newUserRut').value.trim();
   const email = (document.getElementById('newUserEmail').value || '').trim().toLowerCase();
   const pass  = document.getElementById('newUserPass').value;
   const role  = document.getElementById('newUserRole').value;
-  if (!rut || !pass) { toast('Completa RUT y contraseña.', 'err'); return; }
-  // Validate email format if provided
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    toast('El formato del correo no es válido.', 'err'); return;
+
+  if (!pass || (!rut && !email)) { toast('Completa al menos RUT o correo, y contraseña.', 'err'); return; }
+  if (pass.length < 6) { toast('La contraseña debe tener al menos 6 caracteres.', 'err'); return; }
+
+  const loginEmail = email || rutToEmail(rut);
+  const { auth, createUserWithEmailAndPassword, db, doc, setDoc } = fb();
+
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, loginEmail, pass);
+    await setDoc(doc(db, 'users', cred.user.uid), { rut: rut||'', email: email||loginEmail, role, createdAt: new Date().toISOString() });
+    // Also create empty inventory docs
+    await setDoc(doc(db, 'inventario', cred.user.uid), { departments: [], updatedAt: new Date().toISOString() });
+    await setDoc(doc(db, 'tintas', cred.user.uid), { items: [], updatedAt: new Date().toISOString() });
+    document.getElementById('newUserRut').value = '';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPass').value = '';
+    renderUserList();
+    toast(`Usuario ${rut||email} creado.`, 'ok');
+  } catch(e) {
+    toast('Error al crear usuario: ' + (e.code === 'auth/email-already-in-use' ? 'Ya existe un usuario con ese RUT/correo.' : e.message), 'err');
   }
-  // Check email not already used by another user
-  const users = getUsers();
-  if (email) {
-    const emailConflict = users.find(u => u.rut !== rut && (u.email||'').toLowerCase() === email);
-    if (emailConflict) { toast('Ese correo ya está asignado a otro usuario.', 'err'); return; }
-  }
-  const idx = users.findIndex(u=>u.rut===rut);
-  const entry = { rut, email, pass: btoa(pass), role };
-  if (idx >= 0) users[idx] = entry;
-  else users.push(entry);
-  saveUsers(users);
-  document.getElementById('newUserRut').value = '';
-  document.getElementById('newUserEmail').value = '';
-  document.getElementById('newUserPass').value = '';
-  renderUserList();
-  toast(`Usuario ${rut} guardado.`, 'ok');
 }
 
-function deleteUser(rut) {
-  if (!confirm(`¿Eliminar usuario ${rut}?`)) return;
-  const users = getUsers().filter(u=>u.rut!==rut);
-  saveUsers(users);
-  renderUserList();
-  toast(`Usuario ${rut} eliminado.`, 'info');
+async function deleteUser(uid) {
+  if (!firebaseReady()) return;
+  if (currentUser?.role !== 'admin') { toast('Sin permisos.', 'warn'); return; }
+  if (!confirm('¿Eliminar este usuario? Sus datos de inventario también se eliminarán.')) return;
+  const { db, doc, deleteDoc } = fb();
+  try {
+    await deleteDoc(doc(db, 'users', uid));
+    await deleteDoc(doc(db, 'inventario', uid));
+    renderUserList();
+    toast('Usuario eliminado.', 'info');
+  } catch(e) { toast('Error al eliminar: ' + e.message, 'err'); }
 }
 
 // ════════════════════════════════════════
